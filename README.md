@@ -39,13 +39,35 @@ Download the latest build from the [Releases](../../releases) page, open the DMG
 
 ### Option 2: Build from source
 
+This repository ships **source only**. The Xcode project, the entitlements files and the helper scripts are deliberately excluded by `.gitignore`, because they embed a signing team ID. You create the scaffolding once in Xcode and it stays yours.
+
 ```bash
 git clone https://github.com/jpelayo/PlanMonitor.git
 cd PlanMonitor
-open PlanTracker/PlanTracker.xcodeproj
 ```
 
-In Xcode select the `PlanTracker` scheme, set your Development Team under **Signing & Capabilities** for both the app and the `PlanTrackerLoginHelper` target, and run (⌘R).
+Then create a new **macOS App** project in the repository root and wire up two targets.
+
+**App target**
+
+- Add the `PlanMonitor/` folder — `App`, `Host`, `Providers`, `Resources`, `Assets.xcassets`. Remove the template `ContentView.swift` and `<Name>App.swift`; the entry point is `PlanMonitor/PlanTrackerApp.swift`.
+- **Signing & Capabilities:** your own Development Team, plus **App Sandbox** (Outgoing Connections → Client, and User Selected File → Read Only), **App Groups**, and **Keychain Sharing** with access group `$(AppIdentifierPrefix)$(CFBundleIdentifier)`.
+- **Build settings:** deployment target macOS 15.0, `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`, `SWIFT_APPROACHABLE_CONCURRENCY = YES`, `INFOPLIST_KEY_LSUIElement = YES` (menu-bar-only, no Dock icon), display name `PlanMonitor`.
+
+**Login helper target**
+
+- A second macOS App target built from `PlanTrackerLoginHelper/`, with `INFOPLIST_KEY_LSBackgroundOnly = YES`, App Sandbox, and the same App Group as the main app.
+- In the main app, add a **Copy Files** build phase — destination *Wrapper*, subpath `Contents/Library/LoginItems` — containing the helper app, so launch-at-login works.
+
+**Identifiers.** For a local build the bundle IDs, app group and Keychain service can be anything, but the entitlements and these constants must agree:
+
+| Constant | Where |
+|---|---|
+| App group | `Host/EnabledProviders.swift`, `Host/Services/LoginItemSupport.swift`, `PlanTrackerLoginHelper/LoginItemSharedState.swift` |
+| Keychain service | `Host/Services/KeychainSecureStore.swift` |
+| Helper + main bundle ID | `Host/Services/LoginItemSupport.swift`, `PlanTrackerLoginHelper/LoginItemSharedState.swift` |
+
+Select the app scheme and run (⌘R).
 
 ## Usage
 
@@ -76,7 +98,7 @@ Pull requests are welcome.
 3. Commit your changes
 4. Open a Pull Request against `main`
 
-Before opening a PR, run `PlanTracker/scripts/check-localization.sh` so English and Spanish stay in sync.
+Keep `PlanMonitor/Resources/en.lproj/Localizable.strings` and `es.lproj/Localizable.strings` in sync: every key present in both, no duplicates, matching format specifiers. Any string built purely from interpolation should use `Text(verbatim:)` so it never enters the catalogs.
 
 ## License
 
