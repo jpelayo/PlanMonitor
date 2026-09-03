@@ -1,0 +1,248 @@
+/* Menu Bar */
+"5-Hour Limit" = "5-Hour Limit";
+"7-Day Limit" = "7-Day Limit";
+"Opus (7-Day)" = "Opus (7-Day)";
+"Sonnet (7-Day)" = "Sonnet (7-Day)";
+"%@ (7-Day)" = "%@ (7-Day)";
+"Extra Credits (Prepaid)" = "Extra Credits";
+"Credit Balance" = "Credit Balance";
+"Promotional Credits" = "Promotional Credits";
+"Prepaid Credits" = "Prepaid Credits";
+"Invoiceable Spend" = "Invoiceable Spend";
+"Extra expenditure" = "Extra expenditure";
+"Enabled" = "Enabled";
+"Disabled" = "Disabled";
+"used" = "used";
+"remaining" = "remaining";
+"Auto-reload enabled" = "Auto-reload enabled";
+"No auto-reload" = "No auto-reload";
+"Resets" = "Resets within";
+"Refresh" = "Refresh";
+"Settings..." = "Settings...";
+"Sign Out" = "Sign Out";
+"Sign in to Claude" = "Sign in to Claude.ai";
+"Track your Claude.ai usage from the menu bar" = "Track your Claude.ai usage from the menu bar";
+"Sign In" = "Sign In";
+"Cancel" = "Cancel";
+"Quit" = "Quit";
+"No usage limits available" = "No usage limits available";
+"Demo" = "Demo";
+"Claude operational" = "Claude operational";
+"Claude degraded" = "Claude degraded";
+"Claude outage" = "Claude outage";
+
+/* Settings */
+"General" = "General";
+"Launch at login" = "Launch at login";
+"Change language" = "Change language";
+"(requires app restart)" = "(requires app restart)";
+"System" = "System";
+"English" = "English";
+"Spanish" = "Spanish";
+"Display" = "Display";
+"Show percentage" = "Show percentage";
+"Remaining" = "Remaining";
+"Used" = "Used";
+"Update interval" = "Update interval";
+"15 minutes" = "15 minutes";
+"30 minutes" = "30 minutes";
+"Track session time" = "Track session time";
+"Session detection" = "Session detection";
+"Daily reset" = "Daily reset";
+"Today's usage:" = "Today's usage:";
+"Signed in as" = "Signed in as";
+"Plan" = "Plan";
+"Not signed in" = "Not signed in";
+"About" = "About";
+"Version" = "Version";
+"Developer" = "Developer";
+"Source code" = "Source code";
+"PlanMonitor for Grok" = "PlanMonitor for Grok";
+"Weekly SuperGrok Limit" = "Weekly SuperGrok Limit";
+"Grok Build" = "Grok Build";
+"Chat" = "Chat";
+"API" = "API";
+"Not connected" = "Not connected";
+"%@ ago" = "%@ ago";
+"%@ each" = "%@ each";
+"%@ overdrawn" = "%@ overdrawn";
+"%@ remaining" = "%@ remaining";
+"%@ spent" = "%@ spent";
+"%@ · resets %@" = "%@ · resets %@";
+"%@ · resetting now" = "%@ · resetting now";
+"%@, last used %@ ago" = "%@, last used %@ ago";
+"%lld" = "%lld";
+"%lld keys, each with its own budget" = "%lld keys, each with its own budget";
+"%lld minutes" = "%lld minutes";
+"1 hour" = "1 hour";
+"1. Open Settings → Management Keys at openrouter.ai" = "1. Open Settings → Management Keys at openrouter.ai";
+"12 hours" = "12 hours";
+"2. Click Create New Key" = "2. Click Create New Key";
+"24 hours" = "24 hours";
+"3 hours" = "3 hours";
+"3. Paste it below" = "3. Paste it below";
+"30-day spend is unavailable." = "30-day spend is unavailable.";
+"6 hours" = "6 hours";
+"API key limits" = "API key limits";
+"Amount" = "Amount";
+"Collapse" = "Collapse";
+"Connect" = "Connect";
+"Connect OpenRouter" = "Connect OpenRouter";
+"Credit" = "Credit";
+"Credit balance could not be refreshed." = "Credit balance could not be refreshed.";
+"Expand" = "Expand";
+"Guardrails" = "Guardrails";
+"Guardrails are not available for this account." = "Guardrails are not available for this account.";
+"Guardrails could not be refreshed." = "Guardrails could not be refreshed.";
+"Icon only" = "Icon only";
+"Key limits could not be refreshed." = "Key limits could not be refreshed.";
+"Last 15 minutes" = "Last 15 minutes";
+"Last 24 hours" = "Last 24 hours";
+"Last 30 days" = "Last 30 days";
+"Last hour" = "Last hour";
+"Menu bar shows" = "Menu bar shows";
+"Network error: %@" = "Network error: %@";
+"No keys assigned" = "No keys assigned";
+"No models called in the last %@." = "No models called in the last %@.";
+"Not connected. Add an OpenRouter management key." = "Not connected. Add an OpenRouter management key.";
+"Open OpenRouter management keys" = "Open OpenRouter management keys";
+"OpenRouter changed its response format: %@" = "OpenRouter changed its response format: %@";
+"OpenRouter credit" = "OpenRouter credit";
+"OpenRouter is rate limiting requests. Backing off." = "OpenRouter is rate limiting requests. Backing off.";
+"OpenRouter key" = "OpenRouter key";
+"Percent" = "Percent";
+"PlanMonitor for OpenRouter" = "PlanMonitor for OpenRouter";
+"PlanMonitor needs a **management key**. It reads your credit balance, key limits, and guardrails — and cannot make model calls or spend credit." = "PlanMonitor needs a **management key**. It reads your credit balance, key limits, and guardrails — and cannot make model calls or spend credit.";
+"Projected this month" = "Projected this month";
+"Recent models" = "Recent models";
+"Replace key" = "Replace key";
+"Requests are blocked until you top up." = "Requests are blocked until you top up.";
+"Show disabled keys" = "Show disabled keys";
+"Show recent models" = "Show recent models";
+"Spending" = "Spending";
+"Spending breakdown" = "Spending breakdown";
+"Stale — last updated %@" = "Stale — last updated %@";
+"That does not look like an OpenRouter key." = "That does not look like an OpenRouter key.";
+"That looks like an inference key. PlanMonitor needs a management key." = "That looks like an inference key. PlanMonitor needs a management key.";
+"The key is stored in your local Keychain. Requests go directly to OpenRouter." = "The key is stored in your local Keychain. Requests go directly to OpenRouter.";
+"This key was revoked or is no longer valid." = "This key was revoked or is no longer valid.";
+"This month" = "This month";
+"Today" = "Today";
+"Unexpected response from OpenRouter (HTTP %lld)." = "Unexpected response from OpenRouter (HTTP %lld).";
+"Unnamed key" = "Unnamed key";
+"Untitled guardrail" = "Untitled guardrail";
+"Updated %@" = "Updated %@";
+"Workspace default" = "Workspace default";
+"approximate" = "approximate";
+"daily" = "daily";
+"disabled" = "disabled";
+"includes BYOK" = "includes BYOK";
+"infinitecontext.com" = "infinitecontext.com";
+"key's own limit binds first" = "key's own limit binds first";
+"lifetime cap" = "lifetime cap";
+"monthly" = "monthly";
+"sk-or-v1-…" = "sk-or-v1-…";
+"weekly" = "weekly";
+/* Unified app */
+"Providers" = "Providers";
+"At least one provider must remain enabled." = "At least one provider must remain enabled.";
+"Sign in to Codex" = "Sign in to Codex";
+"Track your Codex usage from the menu bar" = "Track your ChatGPT / Codex usage from the menu bar";
+"Connected as" = "Connected as";
+"Remove management key" = "Remove management key";
+"PlanMonitor is an independent tool for use with Claude, Codex, Grok, and OpenRouter. It is not affiliated with the vendors nor endorsed by them." = "PlanMonitor is an independent tool for use with Claude, Codex, Grok, and OpenRouter. It is not affiliated with the vendors nor endorsed by them.";
+"Extra Credits" = "Extra Credits";
+"Extra usage credits" = "Extra usage credits";
+"Auto top-up is on" = "Auto top-up is on";
+
+/* Unified app — host */
+"PlanMonitor for Claude" = "PlanMonitor for Claude";
+"PlanMonitor for Codex" = "PlanMonitor for Codex";
+"Dropdown gauges always show used percentage. OpenRouter shows money and has its own menu bar setting." = "Dropdown gauges always show used percentage. OpenRouter shows money and has its own menu bar setting.";
+"Recent models window" = "Recent models window";
+"Keychain is locked. Retrying shortly." = "Keychain is locked. Retrying shortly.";
+"Validating session..." = "Validating session...";
+"OK" = "OK";
+
+/* Session time */
+"%lldh %lldm" = "%lldh %lldm";
+"%lldm" = "%lldm";
+
+/* Codex */
+"Additional 5-Hour Limit" = "Additional 5-Hour Limit";
+"Additional Weekly Limit" = "Additional Weekly Limit";
+"Code Review" = "Code Review";
+
+/* Grok — menu bar and sign-in */
+"Sign in to Grok" = "Sign in to Grok";
+"Track your SuperGrok weekly usage from the menu bar" = "Track your SuperGrok weekly usage from the menu bar";
+"Grok usage" = "Grok usage";
+"Monthly included" = "Monthly included";
+"Signed in" = "Signed in";
+"soon" = "soon";
+"Imagine" = "Imagine";
+"Voice" = "Voice";
+"Usage access still needs approval." = "Usage access still needs approval.";
+"Usage access still needs approval. Open the sign-in window to finish." = "Usage access still needs approval. Open the sign-in window to finish.";
+"Approve usage access" = "Approve usage access";
+"Connecting SuperGrok usage..." = "Connecting SuperGrok usage...";
+"Approve SuperGrok usage access…" = "Approve SuperGrok usage access…";
+"Sign-in failed. Try again." = "Sign-in failed. Try again.";
+"Approval failed. Sign in again." = "Approval failed. Sign in again.";
+
+/* Grok — usage API errors */
+"Session expired. Please sign in again." = "Session expired. Please sign in again.";
+"This Grok account cannot access SuperGrok usage." = "This Grok account cannot access SuperGrok usage.";
+"Grok is rate limiting usage requests. Retrying later." = "Grok is rate limiting usage requests. Retrying later.";
+"Invalid response from Grok (HTTP %lld)." = "Invalid response from Grok (HTTP %lld).";
+"Grok changed its usage response: %@" = "Grok changed its usage response: %@";
+"Weekly SuperGrok usage is not available for this account." = "Weekly SuperGrok usage is not available for this account.";
+"Team Grok accounts cannot show personal weekly usage yet." = "Team Grok accounts cannot show personal weekly usage yet.";
+"Not authenticated. Please sign in." = "Not authenticated. Please sign in.";
+"Grok usage API is not connected. Sign in again." = "Grok usage API is not connected. Sign in again.";
+"Grok did not return a usage configuration." = "Grok did not return a usage configuration.";
+
+/* Grok — authentication errors */
+"Grok login changed. Sign in again." = "Grok login changed. Sign in again.";
+"Invalid response from Grok authentication." = "Invalid response from Grok authentication.";
+"Grok did not return an access token." = "Grok did not return an access token.";
+"Grok approval timed out. Sign in again." = "Grok approval timed out. Sign in again.";
+"Grok access was denied." = "Grok access was denied.";
+"Waiting for Grok approval." = "Waiting for Grok approval.";
+
+/* Grok — CLI login import errors */
+"The selected file is too large to be a Grok login file." = "The selected file is too large to be a Grok login file.";
+"Could not read the selected Grok login file." = "Could not read the selected Grok login file.";
+"The selected file is not valid Grok login JSON." = "The selected file is not valid Grok login JSON.";
+"No Grok CLI OIDC record was found in the selected file." = "No Grok CLI OIDC record was found in the selected file.";
+"The Grok login file uses an unexpected issuer." = "The Grok login file uses an unexpected issuer.";
+"The Grok login file uses an unexpected client ID." = "The Grok login file uses an unexpected client ID.";
+"The Grok login file is not an OIDC credential." = "The Grok login file is not an OIDC credential.";
+"The Grok login file is missing an access or refresh token." = "The Grok login file is missing an access or refresh token.";
+"The Grok login file has an invalid token expiration." = "The Grok login file has an invalid token expiration.";
+
+/* Session detection picker */
+"%lld min" = "%lld min";
+
+/* Menu bar text settings */
+"Menu bar digit width" = "Menu bar digit width";
+"Menu bar digit size" = "Menu bar digit size";
+"Very narrow" = "Very narrow";
+"Narrow" = "Narrow";
+"Normal" = "Normal";
+"Wide" = "Wide";
+"Very small" = "Very small";
+"Small" = "Small";
+"Regular" = "Regular";
+"Large" = "Large";
+
+"Track your OpenRouter credit and limits from the menu bar" = "Track your OpenRouter credit and limits from the menu bar";
+
+/* Login item feedback */
+"macOS did not enable the login item. Open Login Items to turn it on." = "macOS did not enable the login item. Open Login Items to turn it on.";
+
+"Open Login Items…" = "Open Login Items…";
+
+"%lld%@ days" = "%lld%@ days";
+"Confirm letters match and press Continue" = "Confirm letters match and press Continue";
+"Only System Settings can turn this back on. Open Login Items and allow PlanMonitor." = "Only System Settings can turn this back on. Open Login Items and allow PlanMonitor.";

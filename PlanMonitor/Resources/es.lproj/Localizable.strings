@@ -1,0 +1,248 @@
+/* Menu Bar */
+"5-Hour Limit" = "Límite 5 horas";
+"7-Day Limit" = "Límite 7 días";
+"Opus (7-Day)" = "Opus (7 días)";
+"Sonnet (7-Day)" = "Sonnet (7 días)";
+"%@ (7-Day)" = "%@ (7 días)";
+"Extra Credits" = "Créditos Extra";
+"Extra Credits (Prepaid)" = "Créditos Extra";
+"Credit Balance" = "Saldo de créditos";
+"Promotional Credits" = "Créditos promocionales";
+"Prepaid Credits" = "Créditos prepagados";
+"Invoiceable Spend" = "Gasto facturable";
+"Extra expenditure" = "Gasto adicional";
+"Enabled" = "Activado";
+"Disabled" = "Desactivado";
+"used" = "usado";
+"remaining" = "restante";
+"Auto-reload enabled" = "Recarga automática activada";
+"No auto-reload" = "Sin recarga automática";
+"Resets" = "Se restablece en";
+"Refresh" = "Refrescar";
+"Settings..." = "Ajustes...";
+"Sign Out" = "Cerrar sesión";
+"Sign in to Claude" = "Iniciar sesión en Claude";
+"Track your Claude.ai usage from the menu bar" = "Controla tu uso de Claude.ai desde la barra de menús";
+"Sign In" = "Iniciar sesión";
+"Cancel" = "Cancelar";
+"Quit" = "Salir";
+"No usage limits available" = "Sin límites de uso disponibles";
+"Demo" = "Demo";
+"Claude operational" = "Claude operativo";
+"Claude degraded" = "Claude degradado";
+"Claude outage" = "Claude interrumpido";
+
+/* Settings */
+"General" = "General";
+"Launch at login" = "Abrir al inicio de sesión";
+"Change language" = "Cambiar idioma";
+"(requires app restart)" = "(requiere reiniciar la app)";
+"System" = "Sistema";
+"English" = "Inglés";
+"Spanish" = "Español";
+"Display" = "Visualización";
+"Show percentage" = "Mostrar porcentaje";
+"Remaining" = "Restante";
+"Used" = "Usado";
+"Update interval" = "Intervalo de actualización";
+"15 minutes" = "15 minutos";
+"30 minutes" = "30 minutos";
+"Track session time" = "Registrar tiempo de sesión";
+"Session detection" = "Detección de sesión";
+"Daily reset" = "Reinicio diario";
+"Today's usage:" = "Uso de hoy:";
+"Signed in as" = "Conectado como";
+"Plan" = "Plan";
+"Not signed in" = "Sin iniciar sesión";
+"About" = "Acerca de";
+"Version" = "Versión";
+"Developer" = "Desarrollador";
+"Source code" = "Código fuente";
+"PlanMonitor for Grok" = "PlanMonitor para Grok";
+"Weekly SuperGrok Limit" = "Límite semanal SuperGrok";
+"Grok Build" = "Grok Build";
+"Chat" = "Chat";
+"API" = "API";
+"Not connected" = "No conectado";
+"Extra usage credits" = "Créditos de uso adicionales";
+"Auto top-up is on" = "La recarga automática está activada";
+"%@ ago" = "hace %@";
+"%@ each" = "%@ cada una";
+"%@ overdrawn" = "%@ en descubierto";
+"%@ remaining" = "%@ restante";
+"%@ spent" = "%@ gastados";
+"%@ · resets %@" = "%@ · se reinicia %@";
+"%@ · resetting now" = "%@ · reiniciándose ahora";
+"%@, last used %@ ago" = "%@, usado por última vez hace %@";
+"%lld" = "%lld";
+"%lld keys, each with its own budget" = "%lld claves, cada una con su propio presupuesto";
+"%lld minutes" = "%lld minutos";
+"1 hour" = "1 hora";
+"1. Open Settings → Management Keys at openrouter.ai" = "1. Abre Settings → Management Keys en openrouter.ai";
+"12 hours" = "12 horas";
+"2. Click Create New Key" = "2. Pulsa Create New Key";
+"24 hours" = "24 horas";
+"3 hours" = "3 horas";
+"3. Paste it below" = "3. Pégala aquí abajo";
+"30-day spend is unavailable." = "El gasto de 30 días no está disponible.";
+"6 hours" = "6 horas";
+"API key limits" = "Límites por clave";
+"Amount" = "Importe";
+"Collapse" = "Contraer";
+"Connect" = "Conectar";
+"Connect OpenRouter" = "Conectar OpenRouter";
+"Credit" = "Crédito";
+"Credit balance could not be refreshed." = "No se pudo actualizar el saldo de crédito.";
+"Expand" = "Expandir";
+"Guardrails" = "Guardrails";
+"Guardrails are not available for this account." = "Los guardrails no están disponibles para esta cuenta.";
+"Guardrails could not be refreshed." = "No se pudieron actualizar los guardrails.";
+"Icon only" = "Solo icono";
+"Key limits could not be refreshed." = "No se pudieron actualizar los límites de las claves.";
+"Last 15 minutes" = "Últimos 15 minutos";
+"Last 24 hours" = "Últimas 24 horas";
+"Last 30 days" = "Últimos 30 días";
+"Last hour" = "Última hora";
+"Menu bar shows" = "La barra de menús muestra";
+"Network error: %@" = "Error de red: %@";
+"No keys assigned" = "Ninguna clave asignada";
+"No models called in the last %@." = "Ningún modelo llamado en %@.";
+"Not connected. Add an OpenRouter management key." = "Sin conexión. Añade una management key de OpenRouter.";
+"Open OpenRouter management keys" = "Abrir las management keys de OpenRouter";
+"OpenRouter changed its response format: %@" = "OpenRouter cambió el formato de su respuesta: %@";
+"OpenRouter credit" = "Crédito de OpenRouter";
+"OpenRouter is rate limiting requests. Backing off." = "OpenRouter está limitando las peticiones. Reduciendo la frecuencia.";
+"OpenRouter key" = "Clave de OpenRouter";
+"Percent" = "Porcentaje";
+"PlanMonitor for OpenRouter" = "PlanMonitor para OpenRouter";
+"PlanMonitor needs a **management key**. It reads your credit balance, key limits, and guardrails — and cannot make model calls or spend credit." = "PlanMonitor necesita una **management key**. Lee tu saldo, los límites de tus claves y los guardrails, y no puede hacer llamadas a modelos ni gastar crédito.";
+"Projected this month" = "Previsión de este mes";
+"Recent models" = "Modelos recientes";
+"Replace key" = "Sustituir clave";
+"Requests are blocked until you top up." = "Las peticiones están bloqueadas hasta que recargues.";
+"Show disabled keys" = "Mostrar claves desactivadas";
+"Show recent models" = "Mostrar modelos recientes";
+"Spending" = "Gasto";
+"Spending breakdown" = "Desglose de gasto";
+"Stale — last updated %@" = "Desactualizado — última actualización %@";
+"That does not look like an OpenRouter key." = "Eso no parece una clave de OpenRouter.";
+"That looks like an inference key. PlanMonitor needs a management key." = "Eso parece una clave de inferencia. PlanMonitor necesita una management key.";
+"The key is stored in your local Keychain. Requests go directly to OpenRouter." = "La clave se guarda en tu Llavero local. Las peticiones van directamente a OpenRouter.";
+"This key was revoked or is no longer valid." = "Esta clave fue revocada o ya no es válida.";
+"This month" = "Este mes";
+"Today" = "Hoy";
+"Unexpected response from OpenRouter (HTTP %lld)." = "Respuesta inesperada de OpenRouter (HTTP %lld).";
+"Unnamed key" = "Clave sin nombre";
+"Untitled guardrail" = "Guardrail sin título";
+"Updated %@" = "Actualizado %@";
+"Workspace default" = "Predeterminado del espacio";
+"approximate" = "aproximado";
+"daily" = "diario";
+"disabled" = "desactivada";
+"includes BYOK" = "incluye BYOK";
+"infinitecontext.com" = "infinitecontext.com";
+"key's own limit binds first" = "el límite propio de la clave se alcanza antes";
+"lifetime cap" = "límite total";
+"monthly" = "mensual";
+"sk-or-v1-…" = "sk-or-v1-…";
+"weekly" = "semanal";
+/* Aplicación unificada */
+"Providers" = "Proveedores";
+"At least one provider must remain enabled." = "Al menos un proveedor debe permanecer activado.";
+"Sign in to Codex" = "Iniciar sesión en Codex";
+"Track your Codex usage from the menu bar" = "Controla tu uso de ChatGPT / Codex desde la barra de menús";
+"Connected as" = "Conectado como";
+"Remove management key" = "Eliminar clave de gestión";
+"PlanMonitor is an independent tool for use with Claude, Codex, Grok, and OpenRouter. It is not affiliated with the vendors nor endorsed by them." = "PlanMonitor es una herramienta independiente para usar con Claude, Codex, Grok y OpenRouter. No está afiliada a los proveedores ni cuenta con su respaldo.";
+
+/* Aplicación unificada — anfitrión */
+"PlanMonitor for Claude" = "PlanMonitor para Claude";
+"PlanMonitor for Codex" = "PlanMonitor para Codex";
+"Dropdown gauges always show used percentage. OpenRouter shows money and has its own menu bar setting." = "Los indicadores del desplegable siempre muestran el porcentaje usado. OpenRouter muestra dinero y tiene su propio ajuste de barra de menús.";
+"Recent models window" = "Ventana de modelos recientes";
+"Keychain is locked. Retrying shortly." = "El llavero está bloqueado. Se reintentará en breve.";
+"Validating session..." = "Validando la sesión...";
+"OK" = "Aceptar";
+
+/* Tiempo de sesión */
+"%lldh %lldm" = "%lldh %lldm";
+"%lldm" = "%lldm";
+
+/* Codex */
+"Additional 5-Hour Limit" = "Límite adicional de 5 horas";
+"Additional Weekly Limit" = "Límite semanal adicional";
+"Code Review" = "Revisión de código";
+
+/* Grok — barra de menús e inicio de sesión */
+"Sign in to Grok" = "Iniciar sesión en Grok";
+"Track your SuperGrok weekly usage from the menu bar" = "Controla tu uso semanal de SuperGrok desde la barra de menús";
+"Grok usage" = "Uso de Grok";
+"Monthly included" = "Incluido cada mes";
+"Signed in" = "Sesión iniciada";
+"soon" = "pronto";
+"Imagine" = "Imagine";
+"Voice" = "Voz";
+"Usage access still needs approval." = "El acceso al uso aún necesita aprobación.";
+"Usage access still needs approval. Open the sign-in window to finish." = "El acceso al uso aún necesita aprobación. Abre la ventana de inicio de sesión para terminar.";
+"Approve usage access" = "Aprobar el acceso al uso";
+"Connecting SuperGrok usage..." = "Conectando el uso de SuperGrok...";
+"Approve SuperGrok usage access…" = "Aprueba el acceso al uso de SuperGrok…";
+"Sign-in failed. Try again." = "No se pudo iniciar sesión. Inténtalo de nuevo.";
+"Approval failed. Sign in again." = "La aprobación falló. Inicia sesión de nuevo.";
+
+/* Grok — errores de la API de uso */
+"Session expired. Please sign in again." = "La sesión ha caducado. Inicia sesión de nuevo.";
+"This Grok account cannot access SuperGrok usage." = "Esta cuenta de Grok no puede acceder al uso de SuperGrok.";
+"Grok is rate limiting usage requests. Retrying later." = "Grok está limitando las peticiones de uso. Se reintentará más tarde.";
+"Invalid response from Grok (HTTP %lld)." = "Respuesta no válida de Grok (HTTP %lld).";
+"Grok changed its usage response: %@" = "Grok cambió su respuesta de uso: %@";
+"Weekly SuperGrok usage is not available for this account." = "El uso semanal de SuperGrok no está disponible para esta cuenta.";
+"Team Grok accounts cannot show personal weekly usage yet." = "Las cuentas de equipo de Grok aún no pueden mostrar el uso semanal personal.";
+"Not authenticated. Please sign in." = "Sin autenticar. Inicia sesión.";
+"Grok usage API is not connected. Sign in again." = "La API de uso de Grok no está conectada. Inicia sesión de nuevo.";
+"Grok did not return a usage configuration." = "Grok no devolvió una configuración de uso.";
+
+/* Grok — errores de autenticación */
+"Grok login changed. Sign in again." = "El inicio de sesión de Grok ha cambiado. Inicia sesión de nuevo.";
+"Invalid response from Grok authentication." = "Respuesta no válida de la autenticación de Grok.";
+"Grok did not return an access token." = "Grok no devolvió un token de acceso.";
+"Grok approval timed out. Sign in again." = "La aprobación de Grok ha expirado. Inicia sesión de nuevo.";
+"Grok access was denied." = "Se denegó el acceso a Grok.";
+"Waiting for Grok approval." = "Esperando la aprobación de Grok.";
+
+/* Grok — errores al importar el inicio de sesión de la CLI */
+"The selected file is too large to be a Grok login file." = "El archivo seleccionado es demasiado grande para ser un archivo de inicio de sesión de Grok.";
+"Could not read the selected Grok login file." = "No se pudo leer el archivo de inicio de sesión de Grok seleccionado.";
+"The selected file is not valid Grok login JSON." = "El archivo seleccionado no es un JSON de inicio de sesión de Grok válido.";
+"No Grok CLI OIDC record was found in the selected file." = "No se encontró ningún registro OIDC de Grok CLI en el archivo seleccionado.";
+"The Grok login file uses an unexpected issuer." = "El archivo de inicio de sesión de Grok usa un emisor inesperado.";
+"The Grok login file uses an unexpected client ID." = "El archivo de inicio de sesión de Grok usa un ID de cliente inesperado.";
+"The Grok login file is not an OIDC credential." = "El archivo de inicio de sesión de Grok no es una credencial OIDC.";
+"The Grok login file is missing an access or refresh token." = "Al archivo de inicio de sesión de Grok le falta un token de acceso o de actualización.";
+"The Grok login file has an invalid token expiration." = "El archivo de inicio de sesión de Grok tiene una caducidad de token no válida.";
+
+/* Selector de detección de sesión */
+"%lld min" = "%lld min";
+
+/* Ajustes del texto en la barra de menús */
+"Menu bar digit width" = "Anchura de las cifras en la barra";
+"Menu bar digit size" = "Tamaño de las cifras en la barra";
+"Very narrow" = "Muy estrecha";
+"Narrow" = "Estrecha";
+"Normal" = "Normal";
+"Wide" = "Ancha";
+"Very small" = "Muy pequeño";
+"Small" = "Pequeño";
+"Regular" = "Normal";
+"Large" = "Grande";
+
+"Track your OpenRouter credit and limits from the menu bar" = "Controla tu crédito y tus límites de OpenRouter desde la barra de menús";
+
+/* Aviso del elemento de inicio */
+"macOS did not enable the login item. Open Login Items to turn it on." = "macOS no ha activado el elemento de inicio. Abre Elementos de inicio para activarlo.";
+
+"Open Login Items…" = "Abrir Elementos de inicio…";
+
+"%lld%@ days" = "%lld%@ días";
+"Confirm letters match and press Continue" = "Comprueba que las letras coinciden y pulsa Continuar";
+"Only System Settings can turn this back on. Open Login Items and allow PlanMonitor." = "Solo Ajustes del Sistema puede volver a activarlo. Abre Elementos de inicio y permite PlanMonitor.";
