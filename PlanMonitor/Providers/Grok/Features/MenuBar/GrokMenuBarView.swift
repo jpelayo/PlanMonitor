@@ -89,7 +89,23 @@ struct GrokMenuBarView: View {
                             .foregroundStyle(.orange)
                     }
                 }
-                SessionTimeLine(text: viewModel.dailySessionFormatted)
+                SessionTimeLine(text: viewModel.dailySessionFormatted) {
+                    let status = viewModel.displayedGrokSystemStatus
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(colorForGrokStatus(status))
+                            .frame(width: 6, height: 6)
+                        Text(titleForGrokStatus(status))
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(colorForGrokStatus(status))
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(colorForGrokStatus(status).opacity(0.12))
+                    .clipShape(.capsule)
+                    .fixedSize(horizontal: true, vertical: false)
+                }
                 ExtraExpenditureLine(
                     enabled: extraExpenditureEnabled,
                     hasStartedSpend: extraExpenditureStarted,
@@ -231,6 +247,28 @@ struct GrokMenuBarView: View {
             .padding(.horizontal, -16)
         }
         .padding()
+    }
+
+    private func colorForGrokStatus(_ status: GrokSystemStatus) -> Color {
+        switch status {
+        case .operational:
+            .green
+        case .degraded:
+            .orange
+        case .outage:
+            .red
+        }
+    }
+
+    private func titleForGrokStatus(_ status: GrokSystemStatus) -> String {
+        switch status {
+        case .operational:
+            String(localized: "Grok operational")
+        case .degraded:
+            String(localized: "Grok degraded")
+        case .outage:
+            String(localized: "Grok outage")
+        }
     }
 
     private func presentLoginWindow() {

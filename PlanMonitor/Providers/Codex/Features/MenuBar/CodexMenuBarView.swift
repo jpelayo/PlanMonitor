@@ -49,7 +49,23 @@ struct CodexMenuBarView: View {
                             .foregroundStyle(.orange)
                     }
                 }
-                SessionTimeLine(text: viewModel.dailySessionFormatted)
+                SessionTimeLine(text: viewModel.dailySessionFormatted) {
+                    let status = viewModel.displayedCodexSystemStatus
+                    HStack(spacing: 5) {
+                        Circle()
+                            .fill(colorForCodexStatus(status))
+                            .frame(width: 6, height: 6)
+                        Text(titleForCodexStatus(status))
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(colorForCodexStatus(status))
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(colorForCodexStatus(status).opacity(0.12))
+                    .clipShape(.capsule)
+                    .fixedSize(horizontal: true, vertical: false)
+                }
                 ExtraExpenditureLine(
                     enabled: viewModel.usageData.overageEnabled,
                     hasStartedSpend: viewModel.usageData.hasStartedExtraUsageSpend,
@@ -265,6 +281,28 @@ struct CodexMenuBarView: View {
             .padding(.horizontal, -16)
         }
         .padding()
+    }
+
+    private func colorForCodexStatus(_ status: CodexSystemStatus) -> Color {
+        switch status {
+        case .operational:
+            .green
+        case .degraded:
+            .orange
+        case .outage:
+            .red
+        }
+    }
+
+    private func titleForCodexStatus(_ status: CodexSystemStatus) -> String {
+        switch status {
+        case .operational:
+            String(localized: "Codex operational")
+        case .degraded:
+            String(localized: "Codex degraded")
+        case .outage:
+            String(localized: "Codex outage")
+        }
     }
 
     private func colorForUtilization(_ utilization: Double) -> Color {

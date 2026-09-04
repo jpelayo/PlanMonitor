@@ -30,6 +30,12 @@
 "Claude operational" = "Claude operational";
 "Claude degraded" = "Claude degraded";
 "Claude outage" = "Claude outage";
+"Codex operational" = "Codex operational";
+"Codex degraded" = "Codex degraded";
+"Codex outage" = "Codex outage";
+"Grok operational" = "Grok operational";
+"Grok degraded" = "Grok degraded";
+"Grok outage" = "Grok outage";
 
 /* Settings */
 "General" = "General";

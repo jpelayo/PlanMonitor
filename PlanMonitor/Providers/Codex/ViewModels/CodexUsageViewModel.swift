@@ -15,6 +15,8 @@ final class CodexUsageViewModel {
     private(set) var errorMessage: String?
     private(set) var lastUpdated: Date?
     private(set) var isDemoMode = false
+    private(set) var codexSystemStatus: CodexSystemStatus = .degraded
+    private(set) var codexStatusSourceUpdatedAt: Date?
     private(set) var nextRefreshAt: Date?
 
     private let snapshotStore: PersistedUsageSnapshotStore
@@ -22,6 +24,10 @@ final class CodexUsageViewModel {
     private var lastAuthRecoveryAttemptAt: Date?
     private let authRecoveryCooldown: TimeInterval = 60
     private let credentialRetryDelay: TimeInterval = 60
+    private let codexStatusRefreshInterval: TimeInterval = 5 * 60
+    private let codexStatusSignalWindow: TimeInterval = 24 * 60 * 60
+    private var isFetchingCodexStatus = false
+    private var lastCodexStatusFetchAt: Date?
 
     var pollingIntervalMinutes: Int = 5 {
         didSet {
@@ -40,11 +46,13 @@ final class CodexUsageViewModel {
     private let authService: CodexAuthenticationService
     private let pollingService: CodexUsagePollingService
     private let cookieManager: CodexWebViewCookieManager
+    private let codexStatusService: CodexStatusService
 
     private var identityTask: Task<Void, Never>?
     private var cookiePersistTask: Task<Void, Never>?
     private var recoveryTask: Task<Void, Never>?
     private var credentialRetryTask: Task<Void, Never>?
+    private var statusTask: Task<Void, Never>?
 
     init(
         secureStore: any SecureStore,
@@ -59,6 +67,7 @@ final class CodexUsageViewModel {
         )
         self.pollingService = CodexUsagePollingService(apiClient: apiClient)
         self.cookieManager = CodexWebViewCookieManager()
+        self.codexStatusService = CodexStatusService()
         self.snapshotStore = PersistedUsageSnapshotStore(defaults: defaults)
         self.sessionPreferences = SessionTrackingPreferences(namespace: "codex", defaults: defaults)
         self.sessionTracker = SessionTracker(namespace: "codex", defaults: defaults)
@@ -113,6 +122,10 @@ final class CodexUsageViewModel {
         cookiePersistTask?.cancel()
         cookiePersistTask = Task { [weak self] in
             await self?.authService.persistCurrentSessionCookiesIfNeeded()
+        }
+        statusTask?.cancel()
+        statusTask = Task { [weak self] in
+            await self?.refreshCodexStatus(force: false)
         }
     }
 
@@ -229,6 +242,7 @@ final class CodexUsageViewModel {
         AppRuntimeState.recordBreadcrumb("provider-codex-manual-refresh")
         isLoading = true
         await pollingService.fetchUsage(forceMetadataRefresh: true)
+        await refreshCodexStatus(force: true)
         isLoading = false
     }
 
@@ -252,10 +266,12 @@ final class CodexUsageViewModel {
         cookiePersistTask?.cancel()
         recoveryTask?.cancel()
         credentialRetryTask?.cancel()
+        statusTask?.cancel()
         identityTask = nil
         cookiePersistTask = nil
         recoveryTask = nil
         credentialRetryTask = nil
+        statusTask = nil
     }
 
     private func startPolling() async {
@@ -263,6 +279,69 @@ final class CodexUsageViewModel {
         let interval = TimeInterval(pollingIntervalMinutes * 60)
         await pollingService.setPollingInterval(interval)
         await pollingService.startPolling()
+        await refreshCodexStatus(force: true)
+    }
+
+    var displayedCodexSystemStatus: CodexSystemStatus {
+        guard let status = visibleCodexSystemStatus else {
+            return .operational
+        }
+        return status
+    }
+
+    var visibleCodexSystemStatus: CodexSystemStatus? {
+        guard let sourceUpdatedAt = codexStatusSourceUpdatedAt else {
+            return nil
+        }
+        guard isUsableCodexStatusTimestamp(sourceUpdatedAt) else {
+            return nil
+        }
+        switch codexSystemStatus {
+        case .operational:
+            return nil
+        case .degraded, .outage:
+            return codexSystemStatus
+        }
+    }
+
+    private func refreshCodexStatus(force: Bool) async {
+        guard !isDemoMode else { return }
+        let now = Date()
+        if !force,
+           let lastFetch = lastCodexStatusFetchAt,
+           now.timeIntervalSince(lastFetch) < codexStatusRefreshInterval {
+            return
+        }
+
+        guard !isFetchingCodexStatus else { return }
+        isFetchingCodexStatus = true
+        lastCodexStatusFetchAt = now
+        defer { isFetchingCodexStatus = false }
+
+        do {
+            let snapshot = try await codexStatusService.fetchStatus()
+            guard !Task.isCancelled else { return }
+            if let incomingUpdatedAt = snapshot.sourceUpdatedAt,
+               let existingUpdatedAt = codexStatusSourceUpdatedAt,
+               incomingUpdatedAt < existingUpdatedAt {
+                return
+            }
+            if snapshot.sourceUpdatedAt == nil, codexStatusSourceUpdatedAt != nil {
+                return
+            }
+            codexSystemStatus = snapshot.status
+            codexStatusSourceUpdatedAt = snapshot.sourceUpdatedAt
+        } catch {
+            // Keep previous status value on transient failures.
+        }
+    }
+
+    private func isUsableCodexStatusTimestamp(_ sourceUpdatedAt: Date) -> Bool {
+        let now = Date()
+        if sourceUpdatedAt > now.addingTimeInterval(120) {
+            return false
+        }
+        return now.timeIntervalSince(sourceUpdatedAt) <= codexStatusSignalWindow
     }
 
     var dailySessionFormatted: String? {
@@ -444,6 +523,8 @@ extension CodexUsageViewModel: DemoCapable {
 
         lastUpdated = now
         errorMessage = nil
+        codexSystemStatus = .operational
+        codexStatusSourceUpdatedAt = now
         sessionTracker.setMockAccumulated(83 * 60) // 1h 23m
     }
 }

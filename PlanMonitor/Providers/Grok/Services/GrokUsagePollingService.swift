@@ -12,6 +12,10 @@ actor GrokUsagePollingService {
     /// Plan metadata changes rarely; refetch it on this cadence, stretched under memory pressure.
     private var metadataRefreshInterval: TimeInterval = 6 * 3600
     private var lastMetadataRefreshAt: Date?
+    /// The billing payload never carries the tier, so the last fetched name is reapplied to every
+    /// usage update in between metadata refreshes; otherwise the badge would vanish on the first
+    /// poll after each refresh and stay hidden for hours.
+    private var lastPlanDisplayName: String?
     private var nextFireAt: Date? {
         didSet { onSchedule?(nextFireAt) }
     }
@@ -59,6 +63,7 @@ actor GrokUsagePollingService {
 
     func resetSteadyState() {
         lastMetadataRefreshAt = nil
+        lastPlanDisplayName = nil
         metadataRefreshInterval = 6 * 3600
     }
 
@@ -95,9 +100,10 @@ actor GrokUsagePollingService {
         } ?? true
         if forceMetadataRefresh || metadataIsStale,
            let plan = try? await apiClient.fetchPlanDisplayName() {
-            usage.planDisplayName = plan
+            lastPlanDisplayName = plan
             lastMetadataRefreshAt = Date()
         }
+        usage.planDisplayName = lastPlanDisplayName
         onUsageUpdate?(usage)
     }
 

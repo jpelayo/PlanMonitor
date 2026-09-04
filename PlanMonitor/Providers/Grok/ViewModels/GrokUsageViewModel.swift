@@ -12,6 +12,8 @@ final class GrokUsageViewModel {
     private(set) var lastUpdated: Date?
     private(set) var isStale = false
     private(set) var isDemoMode = false
+    private(set) var grokSystemStatus: GrokSystemStatus = .degraded
+    private(set) var grokStatusSourceUpdatedAt: Date?
     private(set) var nextRefreshAt: Date?
     var needsUsageAuthorization = false
 
@@ -33,12 +35,18 @@ final class GrokUsageViewModel {
     private let pollingService: GrokUsagePollingService
     private let cookieManager: GrokWebViewCookieManager
     private let snapshotStore: GrokUsageSnapshotStore
+    private let grokStatusService: GrokStatusService
     private var pendingDeviceAuthorization: GrokDeviceAuthorization?
     /// The letters the approval page shows. Displayed in the login window and the dropdown
     /// so the user can check the page belongs to this request before pressing Continue.
     private(set) var pendingUserCode: String?
     private var credentialRetryTask: Task<Void, Never>?
+    private var statusTask: Task<Void, Never>?
     private let credentialRetryDelay: TimeInterval = 60
+    private let grokStatusRefreshInterval: TimeInterval = 5 * 60
+    private let grokStatusSignalWindow: TimeInterval = 24 * 60 * 60
+    private var isFetchingGrokStatus = false
+    private var lastGrokStatusFetchAt: Date?
 
     init(
         secureStore: any SecureStore,
@@ -55,6 +63,7 @@ final class GrokUsageViewModel {
         )
         self.pollingService = GrokUsagePollingService(apiClient: apiClient)
         self.cookieManager = GrokWebViewCookieManager()
+        self.grokStatusService = GrokStatusService()
         self.snapshotStore = GrokUsageSnapshotStore(defaults: defaults)
         self.sessionPreferences = SessionTrackingPreferences(namespace: "grok", defaults: defaults)
         self.sessionTracker = SessionTracker(namespace: "grok", defaults: defaults)
@@ -191,12 +200,15 @@ final class GrokUsageViewModel {
         AppRuntimeState.recordBreadcrumb("provider-grok-manual-refresh")
         isLoading = true
         await pollingService.fetchUsage(forceMetadataRefresh: true)
+        await refreshGrokStatus(force: true)
         isLoading = false
     }
 
     func suspend() async {
         credentialRetryTask?.cancel()
         credentialRetryTask = nil
+        statusTask?.cancel()
+        statusTask = nil
         await pollingService.stopPolling()
         nextRefreshAt = nil
     }
@@ -249,6 +261,7 @@ final class GrokUsageViewModel {
         let interval = TimeInterval(pollingIntervalMinutes * 60)
         await pollingService.setPollingInterval(interval)
         await pollingService.startPolling()
+        await refreshGrokStatus(force: true)
     }
 
     private func setupPollingCallbacks() {
@@ -291,6 +304,10 @@ final class GrokUsageViewModel {
             )
         }
         persistSnapshot()
+        statusTask?.cancel()
+        statusTask = Task { [weak self] in
+            await self?.refreshGrokStatus(force: false)
+        }
     }
 
     /// Weekly pool utilization is the primary signal; it is a 0…1 fraction on the wire, so
@@ -360,6 +377,68 @@ final class GrokUsageViewModel {
 // MARK: - Reviewer mode
 
 extension GrokUsageViewModel: DemoCapable {
+    var displayedGrokSystemStatus: GrokSystemStatus {
+        guard let status = visibleGrokSystemStatus else {
+            return .operational
+        }
+        return status
+    }
+
+    var visibleGrokSystemStatus: GrokSystemStatus? {
+        guard let sourceUpdatedAt = grokStatusSourceUpdatedAt else {
+            return nil
+        }
+        guard isUsableGrokStatusTimestamp(sourceUpdatedAt) else {
+            return nil
+        }
+        switch grokSystemStatus {
+        case .operational:
+            return nil
+        case .degraded, .outage:
+            return grokSystemStatus
+        }
+    }
+
+    private func refreshGrokStatus(force: Bool) async {
+        guard !isDemoMode else { return }
+        let now = Date()
+        if !force,
+           let lastFetch = lastGrokStatusFetchAt,
+           now.timeIntervalSince(lastFetch) < grokStatusRefreshInterval {
+            return
+        }
+
+        guard !isFetchingGrokStatus else { return }
+        isFetchingGrokStatus = true
+        lastGrokStatusFetchAt = now
+        defer { isFetchingGrokStatus = false }
+
+        do {
+            let snapshot = try await grokStatusService.fetchStatus()
+            guard !Task.isCancelled else { return }
+            if let incomingUpdatedAt = snapshot.sourceUpdatedAt,
+               let existingUpdatedAt = grokStatusSourceUpdatedAt,
+               incomingUpdatedAt < existingUpdatedAt {
+                return
+            }
+            if snapshot.sourceUpdatedAt == nil, grokStatusSourceUpdatedAt != nil {
+                return
+            }
+            grokSystemStatus = snapshot.status
+            grokStatusSourceUpdatedAt = snapshot.sourceUpdatedAt
+        } catch {
+            // Keep previous status value on transient failures.
+        }
+    }
+
+    private func isUsableGrokStatusTimestamp(_ sourceUpdatedAt: Date) -> Bool {
+        let now = Date()
+        if sourceUpdatedAt > now.addingTimeInterval(120) {
+            return false
+        }
+        return now.timeIntervalSince(sourceUpdatedAt) <= grokStatusSignalWindow
+    }
+
     func enterDemo() {
         guard !isDemoMode else { return }
         isDemoMode = true
@@ -373,6 +452,8 @@ extension GrokUsageViewModel: DemoCapable {
         lastUpdated = demo.fetchedAt
         isStale = false
         errorMessage = nil
+        grokSystemStatus = .operational
+        grokStatusSourceUpdatedAt = Date()
         authState = .authenticated(
             AccountIdentity(
                 email: "demo@example.com",
