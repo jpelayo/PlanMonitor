@@ -117,6 +117,7 @@ struct PlanTrackerApp: App {
                             usageData: claude.usageData,
                             authState: claude.authState,
                             showRemainingPercent: globalPreferences.showRemainingPercent,
+                            usageDisplay: claude.menuBarText.usageDisplay,
                             font: claude.menuBarText.font
                         )
                     },
@@ -136,6 +137,7 @@ struct PlanTrackerApp: App {
                             usageData: codex.usageData,
                             authState: codex.authState,
                             showRemainingPercent: globalPreferences.showRemainingPercent,
+                            usageDisplay: codex.menuBarText.usageDisplay,
                             font: codex.menuBarText.font
                         )
                     },
@@ -150,6 +152,7 @@ struct PlanTrackerApp: App {
                             usageData: grok.usageData,
                             authState: grok.authState,
                             showRemainingPercent: globalPreferences.showRemainingPercent,
+                            usageDisplay: grok.menuBarText.usageDisplay,
                             font: grok.menuBarText.font
                         )
                     },

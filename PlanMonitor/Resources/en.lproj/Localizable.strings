@@ -164,7 +164,7 @@
 /* Unified app — host */
 "PlanMonitor for Claude" = "PlanMonitor for Claude";
 "PlanMonitor for Codex" = "PlanMonitor for Codex";
-"Dropdown gauges always show used percentage. OpenRouter shows money and has its own menu bar setting." = "Dropdown gauges always show used percentage. OpenRouter shows money and has its own menu bar setting.";
+"Dropdown gauges always show used percentage. Each provider chooses what its own menu bar item shows." = "Dropdown gauges always show used percentage. Each provider chooses what its own menu bar item shows.";
 "Recent models window" = "Recent models window";
 "Keychain is locked. Retrying shortly." = "Keychain is locked. Retrying shortly.";
 "Validating session..." = "Validating session...";
@@ -231,6 +231,9 @@
 "%lld min" = "%lld min";
 
 /* Menu bar text settings */
+"5-hour usage" = "5-hour usage";
+"Weekly usage" = "Weekly usage";
+"Both" = "Both";
 "Menu bar digit width" = "Menu bar digit width";
 "Menu bar digit size" = "Menu bar digit size";
 "Very narrow" = "Very narrow";

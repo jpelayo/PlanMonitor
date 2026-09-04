@@ -5,17 +5,22 @@
 
 import AppKit
 
-/// Codex's menu-bar label: weekly severity drives the icon, the displayed compact window
-/// (5-hour, falling back to weekly and the other slots) drives the digits.
+/// Codex's menu-bar label: weekly severity drives the icon, and the digits follow whichever windows
+/// the user picked (5-hour, weekly, or both), falling back to the remaining API slots when neither
+/// of the two named windows is reported.
 enum CodexMenuBarLabel {
     static func make(
         usageData: CodexUsageData,
         authState: CodexAuthState,
         showRemainingPercent: Bool,
+        usageDisplay: MenuBarUsageDisplay,
         font: NSFont
     ) -> MenuBarLabel {
-        let utilization = displayUtilization(usageData)
-        let percentage = displayPercentage(usageData: usageData, authState: authState, showRemainingPercent: showRemainingPercent)
+        let digits = authState.isAuthenticated
+            ? resolveDigits(usageData: usageData, usageDisplay: usageDisplay, showRemainingPercent: showRemainingPercent)
+            : MenuBarUsageDigits.Resolved(text: nil, severityUtilization: nil)
+        let utilization = digits.severityUtilization
+        let percentage = digits.text
         return MenuBarLabel(
             symbolName: "ring.dashed",
             fallbackSymbol: "ring.dashed",
@@ -28,26 +33,33 @@ enum CodexMenuBarLabel {
         )
     }
 
-    private static func displayPercentage(
+    private static func resolveDigits(
         usageData: CodexUsageData,
-        authState: CodexAuthState,
+        usageDisplay: MenuBarUsageDisplay,
         showRemainingPercent: Bool
-    ) -> String? {
-        guard authState.isAuthenticated else { return nil }
-        guard let utilization = displayUtilization(usageData) else { return nil }
-
-        if showRemainingPercent {
-            return "\(Int(100 - utilization))%"
-        } else {
-            return "\(Int(utilization))%"
-        }
+    ) -> MenuBarUsageDigits.Resolved {
+        let primary = MenuBarUsageDigits.resolve(
+            display: usageDisplay,
+            fiveHour: usageData.fiveHourUtilization,
+            week: usageData.sevenDayUtilization,
+            showRemainingPercent: showRemainingPercent
+        )
+        guard primary.text == nil else { return primary }
+        // Neither named window is reported, so fall back to the trailing slots rather than blank the
+        // label. Kept out of the call above on purpose: these are arbitrary API-named buckets, and
+        // in `both` mode one would otherwise be printed as if it were the 5-hour window.
+        return MenuBarUsageDigits.resolve(
+            display: .fiveHour,
+            fiveHour: legacySlotUtilization(usageData),
+            week: nil,
+            showRemainingPercent: showRemainingPercent
+        )
     }
 
-    /// Compact fallback order: five-hour, weekly, model slots, then extra usage.
-    private static func displayUtilization(_ usageData: CodexUsageData) -> Double? {
-        usageData.fiveHourUtilization
-            ?? usageData.sevenDayUtilization
-            ?? usageData.sevenDayOpusUtilization
+    /// Slots three to five, in order. Named after the Claude donor model — slot three
+    /// (`sevenDayOpusUtilization`) is a model-scoped *five-hour* bucket, not a weekly one.
+    private static func legacySlotUtilization(_ usageData: CodexUsageData) -> Double? {
+        usageData.sevenDayOpusUtilization
             ?? usageData.sevenDaySonnetUtilization
             ?? usageData.extraUsageUtilization
     }

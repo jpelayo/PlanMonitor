@@ -53,11 +53,31 @@ nonisolated enum MenuBarDigitSize: String, CaseIterable, Sendable {
     }
 }
 
-/// Per-provider menu-bar text settings. Keys: `<namespace>.menuBarDigitWidth`,
-/// `<namespace>.menuBarDigitSize`.
+/// What a provider's menu-bar digits show. Honoured by providers that have both a 5-hour and a
+/// weekly window; OpenRouter has its own money-shaped picker and does not use this.
+nonisolated enum MenuBarUsageDisplay: String, CaseIterable, Sendable {
+    case fiveHour
+    case week
+    case both
+
+    var displayName: String {
+        switch self {
+        case .fiveHour: String(localized: "5-hour usage")
+        case .week: String(localized: "Weekly usage")
+        case .both: String(localized: "Both")
+        }
+    }
+}
+
+/// Per-provider menu-bar text settings. Keys: `<namespace>.menuBarUsageDisplay`,
+/// `<namespace>.menuBarDigitWidth`, `<namespace>.menuBarDigitSize`.
 @MainActor
 @Observable
 final class MenuBarTextPreferences {
+    var usageDisplay: MenuBarUsageDisplay {
+        didSet { defaults.set(usageDisplay.rawValue, forKey: keys.usageDisplay) }
+    }
+
     var width: MenuBarDigitWidth {
         didSet { defaults.set(width.rawValue, forKey: keys.width) }
     }
@@ -75,10 +95,12 @@ final class MenuBarTextPreferences {
     private let keys: Keys
 
     private struct Keys {
+        let usageDisplay: String
         let width: String
         let size: String
 
         init(namespace: String) {
+            usageDisplay = "\(namespace).menuBarUsageDisplay"
             width = "\(namespace).menuBarDigitWidth"
             size = "\(namespace).menuBarDigitSize"
         }
@@ -87,6 +109,8 @@ final class MenuBarTextPreferences {
     init(namespace: String, defaults: UserDefaults = .standard) {
         self.defaults = defaults
         self.keys = Keys(namespace: namespace)
+        usageDisplay = defaults.string(forKey: keys.usageDisplay)
+            .flatMap(MenuBarUsageDisplay.init(rawValue:)) ?? .fiveHour
         width = defaults.string(forKey: keys.width).flatMap(MenuBarDigitWidth.init(rawValue:)) ?? .normal
         size = defaults.string(forKey: keys.size).flatMap(MenuBarDigitSize.init(rawValue:)) ?? .regular
     }

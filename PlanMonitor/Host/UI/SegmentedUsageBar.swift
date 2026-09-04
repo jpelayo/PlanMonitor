@@ -21,11 +21,39 @@ struct SegmentedUsageBar: View {
     var notchWidth: CGFloat = 1
     /// Strength of the notch lines. Raise for a harder rule, lower for a hint.
     var notchOpacity: Double = 0.55
+    /// Where the fill *would* be if the quota were spent evenly across the window, 0...1. Drawn as
+    /// a pace reference: fill past the marker means the quota is going faster than the window is.
+    /// `nil` draws no marker.
+    var marker: Double?
+    /// White, not red: red competes with the severity fill, which turns red at 90% used. White
+    /// reads as a reference point rather than a warning, and holds contrast against the green,
+    /// orange and red fills alike.
+    var markerColor: Color = .white
+    var markerWidth: CGFloat = 2
+    /// Height of the marker. Defaults to the bar's own height, so it reads as a division of the
+    /// bar rather than a tick floating in it. Larger values make it stand proud of the bar.
+    var markerHeight: CGFloat?
 
     var body: some View {
         UsageBar(fraction: fraction, color: color, height: height)
             .overlay { notches }
+            .overlay { paceMarker }
             .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var paceMarker: some View {
+        if let marker {
+            GeometryReader { proxy in
+                Capsule()
+                    .fill(markerColor)
+                    .frame(width: markerWidth, height: markerHeight ?? height)
+                    .position(
+                        x: proxy.size.width * min(max(marker, 0), 1),
+                        y: height / 2
+                    )
+            }
+        }
     }
 
     private var notches: some View {

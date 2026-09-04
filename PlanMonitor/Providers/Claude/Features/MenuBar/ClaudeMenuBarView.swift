@@ -295,7 +295,14 @@ struct ClaudeMenuBarView: View {
                     .foregroundStyle(colorForUtilization(utilization))
             }
             if window.showsDailySegments {
-                SegmentedUsageBar(fraction: utilization / 100, color: colorForUtilization(utilization))
+                SegmentedUsageBar(
+                    fraction: utilization / 100,
+                    color: colorForUtilization(utilization),
+                    marker: UsageWindowKind.elapsedFraction(
+                        resetsAt: moment,
+                        duration: UsageWindowKind.sevenDays
+                    )
+                )
             } else {
                 UsageBar(fraction: utilization / 100, color: colorForUtilization(utilization))
             }

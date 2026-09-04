@@ -114,7 +114,14 @@ struct CodexMenuBarView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(colorForUtilization(utilization))
                         }
-                        SegmentedUsageBar(fraction: utilization / 100, color: colorForUtilization(utilization))
+                        SegmentedUsageBar(
+                            fraction: utilization / 100,
+                            color: colorForUtilization(utilization),
+                            marker: UsageWindowKind.elapsedFraction(
+                                resetsAt: viewModel.usageData.sevenDayResetsAt,
+                                duration: UsageWindowKind.sevenDays
+                            )
+                        )
                         ResetCaption(
                             countdown: viewModel.usageData.formattedSevenDayReset,
                             moment: viewModel.usageData.sevenDayResetsAt
@@ -155,7 +162,14 @@ struct CodexMenuBarView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(colorForUtilization(utilization))
                         }
-                        SegmentedUsageBar(fraction: utilization / 100, color: colorForUtilization(utilization))
+                        SegmentedUsageBar(
+                            fraction: utilization / 100,
+                            color: colorForUtilization(utilization),
+                            marker: UsageWindowKind.elapsedFraction(
+                                resetsAt: viewModel.usageData.sevenDaySonnetResetsAt,
+                                duration: UsageWindowKind.sevenDays
+                            )
+                        )
                         ResetCaption(
                             countdown: viewModel.usageData.formattedSevenDaySonnetReset,
                             moment: viewModel.usageData.sevenDaySonnetResetsAt

@@ -146,7 +146,8 @@ struct GrokMenuBarView: View {
                     usedPercent: used,
                     resetsAt: viewModel.usageData.weeklyResetsAt,
                     showResetMoment: true,
-                    segments: 7
+                    segments: 7,
+                    windowDuration: 7 * 24 * 3600
                 )
             } else if let limit = viewModel.usageData.monthlyLimit,
                       let used = viewModel.usageData.monthlyUsed,

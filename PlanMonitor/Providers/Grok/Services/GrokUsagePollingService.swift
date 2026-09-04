@@ -4,7 +4,7 @@ actor GrokUsagePollingService {
     private let apiClient: GrokAPIClient
     private var pollingTask: Task<Void, Never>?
     private var pollingInterval: TimeInterval = 300
-    private var intervalGeneration = 0
+    private var cycleGeneration = 0
     private var onUsageUpdate: (@Sendable (GrokUsageData) -> Void)?
     private var onError: (@Sendable (Error) -> Void)?
     private var onSchedule: (@Sendable (Date?) -> Void)?
@@ -36,12 +36,20 @@ actor GrokUsagePollingService {
         self.onSchedule = onSchedule
     }
 
-    /// Applies at once by interrupting the pending sleep; never forces a fetch.
+    /// Applies at once by interrupting the pending sleep; never forces a fetch. The pending
+    /// cycle restarts from now, so the published deadline is always a full interval out.
     func setPollingInterval(_ interval: TimeInterval) {
         let clamped = max(60, interval)
         guard clamped != pollingInterval else { return }
         pollingInterval = clamped
-        intervalGeneration &+= 1
+        cycleGeneration &+= 1
+    }
+
+    /// Restarts the pending cycle from now without fetching. The manual Refresh button has
+    /// just done this cycle's work out of band, so the next automatic poll — and the
+    /// countdown built from its deadline — should be a full interval away.
+    func restartCycle() {
+        cycleGeneration &+= 1
     }
 
     func startPolling() {
@@ -108,15 +116,17 @@ actor GrokUsagePollingService {
     }
 
     private func sleepUntilNextCycle() async {
-        let start = Date()
-        var generation = intervalGeneration
-        var deadline = start.addingTimeInterval(pollingInterval)
+        var generation = cycleGeneration
+        var deadline = Date().addingTimeInterval(pollingInterval)
         nextFireAt = deadline
         defer { nextFireAt = nil }
         while !Task.isCancelled {
-            if intervalGeneration != generation {
-                generation = intervalGeneration
-                deadline = start.addingTimeInterval(pollingInterval)
+            if cycleGeneration != generation {
+                // Interval change or manual refresh: restart the cycle from now, no fetch.
+                // Re-anchoring on the cycle's original start instead would leave the
+                // countdown short by however much of the cycle had already run.
+                generation = cycleGeneration
+                deadline = Date().addingTimeInterval(pollingInterval)
                 nextFireAt = deadline
             }
             let remaining = deadline.timeIntervalSinceNow

@@ -235,6 +235,9 @@ final class ClaudeUsageViewModel {
         AppRuntimeState.recordBreadcrumb("provider-claude-manual-refresh")
         isLoading = true
         await pollingService.fetchUsage(forceMetadataRefresh: true)
+        // The manual fetch just did this cycle's work, so restart the pending sleep: the next
+        // automatic poll is a full interval away and the footer countdown says so.
+        await pollingService.restartCycle()
         await refreshClaudeStatus(force: true)
         isLoading = false
     }

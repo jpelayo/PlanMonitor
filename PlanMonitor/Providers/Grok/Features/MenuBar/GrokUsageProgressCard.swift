@@ -8,9 +8,16 @@ struct GrokUsageProgressCard: View {
     /// Number of segment hints to draw, for a window whose quota maps onto days (7 for a week).
     /// `nil` draws the plain bar.
     var segments: Int?
+    /// Length of the window this card covers (7 days for the weekly pool). With `resetsAt` it
+    /// gives the elapsed fraction, drawn as the pace marker. `nil` draws no marker.
+    var windowDuration: TimeInterval?
 
     private var barFraction: Double {
         min(max(usedPercent / 100, 0), 1)
+    }
+
+    private var paceFraction: Double? {
+        UsageWindowKind.elapsedFraction(resetsAt: resetsAt, duration: windowDuration)
     }
 
     var body: some View {
@@ -24,7 +31,12 @@ struct GrokUsageProgressCard: View {
                     .foregroundStyle(colorForUtilization(usedPercent))
             }
             if let segments {
-                SegmentedUsageBar(fraction: barFraction, color: colorForUtilization(usedPercent), segments: segments)
+                SegmentedUsageBar(
+                    fraction: barFraction,
+                    color: colorForUtilization(usedPercent),
+                    segments: segments,
+                    marker: paceFraction
+                )
             } else {
                 UsageBar(fraction: barFraction, color: colorForUtilization(usedPercent))
             }

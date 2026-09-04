@@ -33,8 +33,22 @@ enum UsageWindowKind: Sendable {
     /// rounding in the reported reset. Used only to *sanity-check* a declaration, never to make one.
     static let hourlyUpperBound: TimeInterval = 6 * 3600
 
+    /// Every multi-day window tracked today runs a week.
+    static let sevenDays: TimeInterval = 7 * 24 * 3600
+
     var showsDailySegments: Bool {
         self == .multiDay
+    }
+
+    /// How far through the window we are, 0...1 — where the fill *would* be if the quota were
+    /// spent evenly. Only the window's *end* is reported by any provider, so the start is
+    /// `resetsAt - duration` and the duration has to be declared, never inferred: a wrong duration
+    /// puts the marker visibly in the wrong place.
+    static func elapsedFraction(resetsAt: Date?, duration: TimeInterval?, now: Date = Date()) -> Double? {
+        guard let resetsAt, let duration, duration > 0 else { return nil }
+        let elapsed = (duration - resetsAt.timeIntervalSince(now)) / duration
+        guard elapsed.isFinite else { return nil }
+        return min(max(elapsed, 0), 1)
     }
 
     /// True when `resetsAt` is too far out for `self` to be honest about being hourly — a cheap

@@ -73,7 +73,7 @@ struct SettingsView: View {
                 }
                 .pickerStyle(.menu)
 
-                Text(String(localized: "Dropdown gauges always show used percentage. OpenRouter shows money and has its own menu bar setting."))
+                Text(String(localized: "Dropdown gauges always show used percentage. Each provider chooses what its own menu bar item shows."))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -133,6 +133,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var claudeControls: some View {
         SessionTrackingControls(preferences: viewModel.sessionPreferences)
+        MenuBarUsageDisplayControl(preferences: viewModel.menuBarText)
         MenuBarTextControls(preferences: viewModel.menuBarText)
         providerAccount(
             email: viewModel.authState.email,
@@ -145,6 +146,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var codexControls: some View {
         SessionTrackingControls(preferences: codexViewModel.sessionPreferences)
+        MenuBarUsageDisplayControl(preferences: codexViewModel.menuBarText)
         MenuBarTextControls(preferences: codexViewModel.menuBarText)
         providerAccount(
             email: codexViewModel.authState.email,
@@ -157,6 +159,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var grokControls: some View {
         SessionTrackingControls(preferences: grokViewModel.sessionPreferences)
+        MenuBarUsageDisplayControl(preferences: grokViewModel.menuBarText)
         MenuBarTextControls(preferences: grokViewModel.menuBarText)
         providerAccount(
             email: grokViewModel.authState.email,

@@ -1,15 +1,24 @@
 import AppKit
 
-/// Grok's menu-bar label: one weekly pool drives both icon and digits.
+/// Grok's menu-bar label: one weekly pool drives both icon and digits. Grok reports no hourly
+/// window, so every `MenuBarUsageDisplay` option resolves to that weekly pool.
 enum GrokMenuBarLabel {
     static func make(
         usageData: GrokUsageData,
         authState: GrokAuthState,
         showRemainingPercent: Bool,
+        usageDisplay: MenuBarUsageDisplay,
         font: NSFont
     ) -> MenuBarLabel {
         let severity = GrokMenuBarUsageSeverity(usageData.usedPercent)
-        let percentage = displayPercentage(usageData: usageData, authState: authState, showRemainingPercent: showRemainingPercent)
+        let percentage = authState.showsUsage
+            ? MenuBarUsageDigits.resolve(
+                display: usageDisplay,
+                fiveHour: nil,
+                week: usageData.usedPercent,
+                showRemainingPercent: showRemainingPercent
+            ).text
+            : nil
         return MenuBarLabel(
             symbolName: "guaranisign.ring.dashed",
             fallbackSymbol: "ring.dashed",
@@ -20,20 +29,6 @@ enum GrokMenuBarLabel {
             accessibilityLabel: String(localized: "Grok usage"),
             accessibilityValue: percentage ?? String(localized: "Not connected")
         )
-    }
-
-    private static func displayPercentage(
-        usageData: GrokUsageData,
-        authState: GrokAuthState,
-        showRemainingPercent: Bool
-    ) -> String? {
-        guard authState.showsUsage else { return nil }
-        if showRemainingPercent {
-            guard let remaining = usageData.remainingPercent else { return nil }
-            return "\(Int(remaining))%"
-        }
-        guard let used = usageData.usedPercent else { return nil }
-        return "\(Int(used))%"
     }
 }
 

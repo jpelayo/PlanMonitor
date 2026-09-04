@@ -164,7 +164,7 @@
 /* Aplicación unificada — anfitrión */
 "PlanMonitor for Claude" = "PlanMonitor para Claude";
 "PlanMonitor for Codex" = "PlanMonitor para Codex";
-"Dropdown gauges always show used percentage. OpenRouter shows money and has its own menu bar setting." = "Los indicadores del desplegable siempre muestran el porcentaje usado. OpenRouter muestra dinero y tiene su propio ajuste de barra de menús.";
+"Dropdown gauges always show used percentage. Each provider chooses what its own menu bar item shows." = "Los indicadores del desplegable siempre muestran el porcentaje usado. Cada proveedor elige qué muestra su propio elemento en la barra de menús.";
 "Recent models window" = "Ventana de modelos recientes";
 "Keychain is locked. Retrying shortly." = "El llavero está bloqueado. Se reintentará en breve.";
 "Validating session..." = "Validando la sesión...";
@@ -231,6 +231,9 @@
 "%lld min" = "%lld min";
 
 /* Ajustes del texto en la barra de menús */
+"5-hour usage" = "Uso de 5 horas";
+"Weekly usage" = "Uso semanal";
+"Both" = "Ambos";
 "Menu bar digit width" = "Anchura de las cifras en la barra";
 "Menu bar digit size" = "Tamaño de las cifras en la barra";
 "Very narrow" = "Muy estrecha";

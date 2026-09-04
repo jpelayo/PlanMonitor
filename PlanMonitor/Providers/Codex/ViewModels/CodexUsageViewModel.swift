@@ -242,6 +242,9 @@ final class CodexUsageViewModel {
         AppRuntimeState.recordBreadcrumb("provider-codex-manual-refresh")
         isLoading = true
         await pollingService.fetchUsage(forceMetadataRefresh: true)
+        // The manual fetch just did this cycle's work, so restart the pending sleep: the next
+        // automatic poll is a full interval away and the footer countdown says so.
+        await pollingService.restartCycle()
         await refreshCodexStatus(force: true)
         isLoading = false
     }
@@ -321,16 +324,15 @@ final class CodexUsageViewModel {
         do {
             let snapshot = try await codexStatusService.fetchStatus()
             guard !Task.isCancelled else { return }
-            if let incomingUpdatedAt = snapshot.sourceUpdatedAt,
-               let existingUpdatedAt = codexStatusSourceUpdatedAt,
-               incomingUpdatedAt < existingUpdatedAt {
-                return
-            }
-            if snapshot.sourceUpdatedAt == nil, codexStatusSourceUpdatedAt != nil {
-                return
-            }
             codexSystemStatus = snapshot.status
-            codexStatusSourceUpdatedAt = snapshot.sourceUpdatedAt
+            // Deliberately *not* guarded against a backwards-moving `page.updated_at`: Statuspage
+            // reports it as the last edit to the page, not the last change in incident state, so it
+            // jumps backwards when an incident clears (observed 2026-09-04: an active "minor" carried
+            // a same-day stamp, the following "none" carried one from 2026-07-09). A monotonic guard
+            // therefore discards the recovery and latches "degraded" until the freshness window
+            // expires. The request is uncached and authoritative, so the snapshot is dated by when we
+            // fetched it, and the window then means "we have reached the status API within a day".
+            codexStatusSourceUpdatedAt = snapshot.fetchedAt
         } catch {
             // Keep previous status value on transient failures.
         }

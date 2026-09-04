@@ -5,42 +5,38 @@
 
 import AppKit
 
-/// Claude's menu-bar label: the icon follows weekly severity, the digits follow the 5-hour
-/// window. Rendered by `StatusItemController` as a real AppKit title, never rasterised.
+/// Claude's menu-bar label: the icon follows weekly severity, the digits follow whichever windows
+/// the user picked (5-hour, weekly, or both). Rendered by `StatusItemController` as a real AppKit
+/// title, never rasterised.
 enum ClaudeMenuBarLabel {
     static func make(
         usageData: ClaudeUsageData,
         authState: ClaudeAuthState,
         showRemainingPercent: Bool,
+        usageDisplay: MenuBarUsageDisplay,
         font: NSFont
     ) -> MenuBarLabel {
-        let percentage = displayPercentage(usageData: usageData, authState: authState, showRemainingPercent: showRemainingPercent)
+        let digits = authState.isAuthenticated
+            ? MenuBarUsageDigits.resolve(
+                display: usageDisplay,
+                fiveHour: usageData.fiveHourUtilization,
+                // The main 7-day limit only. The model-scoped windows (Opus, Sonnet, and the
+                // dynamic one that renders as e.g. "Fable (7-Day)") are never "the week".
+                week: usageData.sevenDayUtilization,
+                showRemainingPercent: showRemainingPercent
+            )
+            : MenuBarUsageDigits.Resolved(text: nil, severityUtilization: nil)
+        let percentage = digits.text
         return MenuBarLabel(
             symbolName: "cedisign.ring.dashed",
             fallbackSymbol: "ring.dashed",
             symbolTint: ClaudeMenuBarUsageSeverity(usageData.sevenDayUtilization).iconTint,
             text: percentage,
-            textTint: percentage == nil ? nil : ClaudeMenuBarUsageSeverity(usageData.fiveHourUtilization).tint,
+            textTint: percentage == nil ? nil : ClaudeMenuBarUsageSeverity(digits.severityUtilization).tint,
             font: font,
             accessibilityLabel: String(localized: "PlanMonitor for Claude"),
             accessibilityValue: percentage ?? String(localized: "Not signed in")
         )
-    }
-
-    private static func displayPercentage(
-        usageData: ClaudeUsageData,
-        authState: ClaudeAuthState,
-        showRemainingPercent: Bool
-    ) -> String? {
-        guard authState.isAuthenticated else { return nil }
-
-        if showRemainingPercent {
-            guard let remaining = usageData.fiveHourRemaining else { return nil }
-            return "\(Int(remaining))%"
-        } else {
-            guard let utilization = usageData.fiveHourUtilization else { return nil }
-            return "\(Int(utilization))%"
-        }
     }
 }
 
