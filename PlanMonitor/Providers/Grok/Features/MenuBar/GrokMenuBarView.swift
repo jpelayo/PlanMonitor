@@ -145,7 +145,8 @@ struct GrokMenuBarView: View {
                     title: String(localized: "Weekly SuperGrok Limit"),
                     usedPercent: used,
                     resetsAt: viewModel.usageData.weeklyResetsAt,
-                    showResetMoment: true
+                    showResetMoment: true,
+                    segments: 7
                 )
             } else if let limit = viewModel.usageData.monthlyLimit,
                       let used = viewModel.usageData.monthlyUsed,

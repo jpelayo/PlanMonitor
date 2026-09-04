@@ -5,6 +5,13 @@ struct GrokUsageProgressCard: View {
     let usedPercent: Double
     let resetsAt: Date?
     var showResetMoment = false
+    /// Number of segment hints to draw, for a window whose quota maps onto days (7 for a week).
+    /// `nil` draws the plain bar.
+    var segments: Int?
+
+    private var barFraction: Double {
+        min(max(usedPercent / 100, 0), 1)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -16,7 +23,11 @@ struct GrokUsageProgressCard: View {
                     .font(.subheadline)
                     .foregroundStyle(colorForUtilization(usedPercent))
             }
-            UsageBar(fraction: min(max(usedPercent / 100, 0), 1), color: colorForUtilization(usedPercent))
+            if let segments {
+                SegmentedUsageBar(fraction: barFraction, color: colorForUtilization(usedPercent), segments: segments)
+            } else {
+                UsageBar(fraction: barFraction, color: colorForUtilization(usedPercent))
+            }
             if let resetsAt {
                 HStack {
                     Text(verbatim: "\(String(localized: "Resets")) \(formattedReset(resetsAt))")

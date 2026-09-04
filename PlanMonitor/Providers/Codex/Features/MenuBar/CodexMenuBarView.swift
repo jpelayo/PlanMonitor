@@ -114,7 +114,7 @@ struct CodexMenuBarView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(colorForUtilization(utilization))
                         }
-                        UsageBar(fraction: utilization / 100, color: colorForUtilization(utilization))
+                        SegmentedUsageBar(fraction: utilization / 100, color: colorForUtilization(utilization))
                         ResetCaption(
                             countdown: viewModel.usageData.formattedSevenDayReset,
                             moment: viewModel.usageData.sevenDayResetsAt
@@ -122,7 +122,9 @@ struct CodexMenuBarView: View {
                     }
                 }
 
-                // 7-Day Opus Usage
+                // Slot 3: the model-scoped FIVE-HOUR bucket (mapLimitsToSlots fills it via
+                // modelFiveHourScore). The `sevenDayOpus` field name is a leftover from the
+                // Claude donor model — do not read it as a weekly window.
                 if let utilization = viewModel.usageData.sevenDayOpusUtilization {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
@@ -141,7 +143,8 @@ struct CodexMenuBarView: View {
                     }
                 }
 
-                // 7-Day Sonnet Usage
+                // Slot 4: the model-scoped WEEKLY bucket (modelWeeklyScore). The
+                // `sevenDaySonnet` field name is likewise inherited from the Claude donor.
                 if let utilization = viewModel.usageData.sevenDaySonnetUtilization {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack {
@@ -152,7 +155,7 @@ struct CodexMenuBarView: View {
                                 .font(.subheadline)
                                 .foregroundStyle(colorForUtilization(utilization))
                         }
-                        UsageBar(fraction: utilization / 100, color: colorForUtilization(utilization))
+                        SegmentedUsageBar(fraction: utilization / 100, color: colorForUtilization(utilization))
                         ResetCaption(
                             countdown: viewModel.usageData.formattedSevenDaySonnetReset,
                             moment: viewModel.usageData.sevenDaySonnetResetsAt

@@ -105,7 +105,8 @@ struct ClaudeMenuBarView: View {
                         title: String(localized: "7-Day Limit"),
                         utilization: utilization,
                         countdown: viewModel.usageData.formattedSevenDayReset,
-                        moment: viewModel.usageData.sevenDayResetsAt
+                        moment: viewModel.usageData.sevenDayResetsAt,
+                        window: .multiDay
                     )
                 }
 
@@ -115,7 +116,8 @@ struct ClaudeMenuBarView: View {
                         title: String(localized: "Opus (7-Day)"),
                         utilization: utilization,
                         countdown: viewModel.usageData.formattedSevenDayOpusReset,
-                        moment: viewModel.usageData.sevenDayOpusResetsAt
+                        moment: viewModel.usageData.sevenDayOpusResetsAt,
+                        window: .multiDay
                     )
                 }
 
@@ -126,7 +128,8 @@ struct ClaudeMenuBarView: View {
                         title: scopedSevenDayTitle(label),
                         utilization: utilization,
                         countdown: viewModel.usageData.formattedSevenDayScopedReset,
-                        moment: viewModel.usageData.sevenDayScopedResetsAt
+                        moment: viewModel.usageData.sevenDayScopedResetsAt,
+                        window: .multiDay
                     )
                 }
 
@@ -136,7 +139,8 @@ struct ClaudeMenuBarView: View {
                         title: String(localized: "Sonnet (7-Day)"),
                         utilization: utilization,
                         countdown: viewModel.usageData.formattedSevenDaySonnetReset,
-                        moment: viewModel.usageData.sevenDaySonnetResetsAt
+                        moment: viewModel.usageData.sevenDaySonnetResetsAt,
+                        window: .multiDay
                     )
                 }
 
@@ -274,7 +278,13 @@ struct ClaudeMenuBarView: View {
         )
     }
 
-    private func usageBlock(title: String, utilization: Double, countdown: String?, moment: Date? = nil) -> some View {
+    private func usageBlock(
+        title: String,
+        utilization: Double,
+        countdown: String?,
+        moment: Date? = nil,
+        window: UsageWindowKind = .unknown
+    ) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(title)
@@ -284,7 +294,11 @@ struct ClaudeMenuBarView: View {
                     .font(.subheadline)
                     .foregroundStyle(colorForUtilization(utilization))
             }
-            UsageBar(fraction: utilization / 100, color: colorForUtilization(utilization))
+            if window.showsDailySegments {
+                SegmentedUsageBar(fraction: utilization / 100, color: colorForUtilization(utilization))
+            } else {
+                UsageBar(fraction: utilization / 100, color: colorForUtilization(utilization))
+            }
             ResetCaption(countdown: countdown, moment: moment)
         }
     }
