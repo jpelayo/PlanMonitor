@@ -35,7 +35,7 @@ actor OpenRouterBudgetPollingService {
     private var recentModelsWindow: RecentModelsWindow = .fifteenMinutes
 
     private var consecutiveFailures = 0
-    private var intervalGeneration = 0
+    private var cycleGeneration = 0
     private var onUpdate: (@Sendable (PollOutcome) -> Void)?
     private var onError: (@Sendable (OpenRouterAPIError) -> Void)?
     private var onSchedule: (@Sendable (Date?) -> Void)?
@@ -66,7 +66,17 @@ actor OpenRouterBudgetPollingService {
         let clamped = max(180, newValue)
         guard clamped != interval else { return }
         interval = clamped
-        intervalGeneration &+= 1        // interrupts the pending sleep, no fetch
+        // Touching the setting means "try again on the new schedule": a pending backoff is
+        // dropped rather than scaled, so the countdown restarts at the plain new interval.
+        consecutiveFailures = 0
+        cycleGeneration &+= 1        // interrupts the pending sleep, no fetch
+    }
+
+    /// Restarts the pending cycle from now without fetching. The manual Refresh button has
+    /// just done this cycle's work out of band, so the next automatic poll — and the
+    /// countdown built from its deadline — should be a full delay away.
+    func restartCycle() {
+        cycleGeneration &+= 1
     }
 
     func start() {
@@ -109,6 +119,9 @@ actor OpenRouterBudgetPollingService {
 
     func refreshNow() async {
         await poll(force: true)
+        // `poll` has already updated `consecutiveFailures`, so re-anchoring now recomputes a
+        // plain interval after a success and a fresh backoff after a failure.
+        restartCycle()
     }
 
     // MARK: - Cycle
@@ -235,17 +248,18 @@ actor OpenRouterBudgetPollingService {
     /// Sleeps in short slices so an interval change takes effect at once without
     /// forcing a fetch. One-second granularity is free at a 3–60 minute cadence.
     private func sleepUntilNextCycle() async {
-        let start = Date()
-        let delay = backoffDelay
-        var generation = intervalGeneration
-        var deadline = start.addingTimeInterval(delay ?? interval)
+        var generation = cycleGeneration
+        var deadline = nextDeadline()
         nextFireAt = deadline
         defer { nextFireAt = nil }
         while !Task.isCancelled {
-            if intervalGeneration != generation {
-                // Interval changed mid-sleep: re-anchor on the same cycle start, no fetch.
-                generation = intervalGeneration
-                deadline = start.addingTimeInterval(delay ?? interval)
+            if cycleGeneration != generation {
+                // Interval change or manual refresh: restart the cycle from now, no fetch.
+                // Both the anchor and the backoff are recomputed — anchoring on the cycle's
+                // original start would leave the countdown short, and replaying the delay
+                // captured on entry would keep counting down a backoff already cleared.
+                generation = cycleGeneration
+                deadline = nextDeadline()
                 nextFireAt = deadline
             }
             let remaining = deadline.timeIntervalSinceNow
@@ -253,6 +267,12 @@ actor OpenRouterBudgetPollingService {
             let slice = min(remaining, 1.0)
             try? await Task.sleep(nanoseconds: UInt64(slice * 1_000_000_000))
         }
+    }
+
+    /// How far out the next poll sits: the plain interval, or a backoff while cycles are
+    /// failing. Read afresh at every anchor point, so a cleared failure count takes effect.
+    private func nextDeadline(from now: Date = Date()) -> Date {
+        now.addingTimeInterval(backoffDelay ?? interval)
     }
 
     /// Exponential backoff with jitter. 429 is treated as a strong signal because the

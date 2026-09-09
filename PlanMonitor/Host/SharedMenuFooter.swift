@@ -29,14 +29,22 @@ struct SharedMenuFooter: View {
                         refreshInFlight = false
                     }
                 } trailing: {
-                    if isRefreshing || refreshInFlight {
-                        ProgressView().scaleEffect(0.6)
-                    } else if let nextRefreshAt, nextRefreshAt > Date() {
-                        // `.timer` counts down to the date and never past it.
-                        Text(nextRefreshAt, style: .timer)
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
+                    ZStack {
+                        if isRefreshing || refreshInFlight {
+                            // `.controlSize(.small)` and not `.scaleEffect`: a spinning
+                            // `ProgressView` is a 32pt box on macOS, and `scaleEffect` shrinks only
+                            // the drawing, leaving the full box in the layout — which is what made
+                            // the row grow every time a refresh started.
+                            ProgressView()
+                                .controlSize(.small)
+                        } else if let nextRefreshAt, nextRefreshAt > Date() {
+                            // `.timer` counts down to the date and never past it.
+                            Text(nextRefreshAt, style: .timer)
+                                .font(.caption.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                    .frame(maxHeight: Self.trailingSlotHeight)
                 }
                 .disabled(!refreshEnabled || refreshInFlight)
 
@@ -90,6 +98,11 @@ struct SharedMenuFooter: View {
             }
         }
     }
+
+    /// Caps the Refresh row's trailing slot so swapping the countdown for the spinner cannot
+    /// change the row's height. Below the row label's own line height, so an empty slot — no
+    /// countdown scheduled — leaves the row exactly as it is today.
+    private static let trailingSlotHeight: CGFloat = 16
 
     private func rowLabel(_ title: String, systemImage: String) -> some View {
         HStack {

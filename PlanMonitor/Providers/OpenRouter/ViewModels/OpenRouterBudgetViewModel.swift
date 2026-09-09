@@ -248,18 +248,21 @@ final class OpenRouterBudgetViewModel {
     private func setupCallbacks() {
         Task { [weak self] in
             guard let self else { return }
+            // `[weak self]` on each callback, not just on the inner `Task`: the enclosing
+            // `guard let self` promotes it to a strong local, and the actor outlives this call —
+            // capturing that local would retain the view model that owns the actor.
             await pollingService.setCallbacks(
-                onUpdate: { outcome in
+                onUpdate: { [weak self] outcome in
                     Task { @MainActor [weak self] in
                         self?.apply(outcome)
                     }
                 },
-                onError: { error in
+                onError: { [weak self] error in
                     Task { @MainActor [weak self] in
                         self?.apply(error)
                     }
                 },
-                onSchedule: { date in
+                onSchedule: { [weak self] date in
                     Task { @MainActor [weak self] in
                         self?.nextRefreshAt = date
                     }
