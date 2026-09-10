@@ -118,6 +118,8 @@ struct PlanTrackerApp: App {
                             authState: claude.authState,
                             showRemainingPercent: globalPreferences.showRemainingPercent,
                             usageDisplay: claude.menuBarText.usageDisplay,
+                            ringSource: claude.menuBarText.ringSource,
+                            ringSense: claude.menuBarText.ringSense,
                             font: claude.menuBarText.font
                         )
                     },
@@ -138,6 +140,8 @@ struct PlanTrackerApp: App {
                             authState: codex.authState,
                             showRemainingPercent: globalPreferences.showRemainingPercent,
                             usageDisplay: codex.menuBarText.usageDisplay,
+                            ringSource: codex.menuBarText.ringSource,
+                            ringSense: codex.menuBarText.ringSense,
                             font: codex.menuBarText.font
                         )
                     },
@@ -153,6 +157,8 @@ struct PlanTrackerApp: App {
                             authState: grok.authState,
                             showRemainingPercent: globalPreferences.showRemainingPercent,
                             usageDisplay: grok.menuBarText.usageDisplay,
+                            ringSource: grok.menuBarText.ringSource,
+                            ringSense: grok.menuBarText.ringSense,
                             font: grok.menuBarText.font
                         )
                     },

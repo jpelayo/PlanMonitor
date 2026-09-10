@@ -5,15 +5,17 @@
 
 import AppKit
 
-/// Codex's menu-bar label: weekly severity drives the icon, and the digits follow whichever windows
-/// the user picked (5-hour, weekly, or both), falling back to the remaining API slots when neither
-/// of the two named windows is reported.
+/// Codex's menu-bar label: weekly severity drives the icon's colour, the user's ring choice drives
+/// how full it is drawn, and the digits follow whichever windows they were pointed at — falling back
+/// to the remaining API slots when neither of the two named windows is reported.
 enum CodexMenuBarLabel {
     static func make(
         usageData: CodexUsageData,
         authState: CodexAuthState,
         showRemainingPercent: Bool,
         usageDisplay: MenuBarUsageDisplay,
+        ringSource: MenuBarRingSource,
+        ringSense: MenuBarRingSense,
         font: NSFont
     ) -> MenuBarLabel {
         let digits = authState.isAuthenticated
@@ -24,6 +26,14 @@ enum CodexMenuBarLabel {
         return MenuBarLabel(
             symbolName: "ring.dashed",
             fallbackSymbol: "ring.dashed",
+            // The two named windows only. `legacySlotUtilization` below is a digits-only last
+            // resort — those slots are arbitrary API buckets, not a window worth gauging.
+            variableValue: MenuBarUsageRing.fill(
+                source: ringSource,
+                sense: ringSense,
+                fiveHour: usageData.fiveHourUtilization,
+                week: usageData.sevenDayUtilization
+            ),
             symbolTint: CodexMenuBarUsageSeverity(usageData.sevenDayUtilization).iconTint,
             text: percentage,
             textTint: percentage == nil ? nil : CodexMenuBarUsageSeverity(utilization).tint,

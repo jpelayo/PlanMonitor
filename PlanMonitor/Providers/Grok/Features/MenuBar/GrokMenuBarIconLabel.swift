@@ -1,13 +1,16 @@
 import AppKit
 
-/// Grok's menu-bar label: one weekly pool drives both icon and digits. Grok reports no hourly
-/// window, so every `MenuBarUsageDisplay` option resolves to that weekly pool.
+/// Grok's menu-bar label: one weekly pool drives icon, ring and digits alike. Grok reports no
+/// hourly window, so every `MenuBarUsageDisplay` and `MenuBarRingSource` option resolves to that
+/// weekly pool.
 enum GrokMenuBarLabel {
     static func make(
         usageData: GrokUsageData,
         authState: GrokAuthState,
         showRemainingPercent: Bool,
         usageDisplay: MenuBarUsageDisplay,
+        ringSource: MenuBarRingSource,
+        ringSense: MenuBarRingSense,
         font: NSFont
     ) -> MenuBarLabel {
         let severity = GrokMenuBarUsageSeverity(usageData.usedPercent)
@@ -22,6 +25,12 @@ enum GrokMenuBarLabel {
         return MenuBarLabel(
             symbolName: "guaranisign.ring.dashed",
             fallbackSymbol: "ring.dashed",
+            variableValue: MenuBarUsageRing.fill(
+                source: ringSource,
+                sense: ringSense,
+                fiveHour: nil,
+                week: usageData.usedPercent
+            ),
             symbolTint: severity.iconTint,
             text: percentage,
             textTint: percentage == nil ? nil : severity.tint,

@@ -372,10 +372,24 @@ struct RecentActivityTests {
         #expect(snapshot.spentLast15Minutes == 0)
     }
 
-    @Test("At most five models are listed")
-    func cappedAtFive() {
+    /// Uncapped on purpose: the section answers "what have I been running", so a model used
+    /// inside the window must never be hidden by how many others were.
+    @Test("Every model in the window is listed")
+    func listsEveryModelInTheWindow() {
         let rows = (1...9).map { analyticsRow(model: "v/m\($0)", minutesAgo: $0, usage: 0.001, tokens: 10) }
-        #expect(assemble(analytics: rows, now: now).recentModels.count == 5)
+        let listed = assemble(analytics: rows, window: .fifteenMinutes, now: now).recentModels
+        #expect(listed.count == 9)
+        #expect(Set(listed.map(\.model)) == Set(rows.compactMap(\.model)))
+    }
+
+    /// The case that made a just-switched model invisible: hourly buckets tie on `lastCalledAt`,
+    /// so the cheapest model sorted last and fell off the end of a five-row cap.
+    @Test("A newly adopted model in a shared bucket is still listed")
+    func newModelSharingABucketIsListed() {
+        let rows = (1...8).map { analyticsRow(model: "old/m\($0)", minutesAgo: 30, usage: 5.0, tokens: 1000) }
+            + [analyticsRow(model: "brand/new", minutesAgo: 30, usage: 0.0001, tokens: 5)]
+        let listed = assemble(dayAnalytics: rows, window: .threeHours, now: now).recentModels
+        #expect(listed.map(\.model).contains("brand/new"))
     }
 
     @Test("Without analytics the trailing figures are nil, never zero")

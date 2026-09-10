@@ -69,8 +69,40 @@ nonisolated enum MenuBarUsageDisplay: String, CaseIterable, Sendable {
     }
 }
 
+/// Which window fills the ring around a provider's menu-bar glyph, or `off` to leave it whole.
+///
+/// `off` is the ring every provider drew before this setting existed — `variableValue: nil` and
+/// `1.0` render identically, so `off` is the untouched icon, not a special case.
+nonisolated enum MenuBarRingSource: String, CaseIterable, Sendable {
+    case off
+    case fiveHour
+    case week
+
+    var displayName: String {
+        switch self {
+        case .off: String(localized: "Disabled")
+        case .fiveHour: String(localized: "5-hour usage")
+        case .week: String(localized: "Weekly usage")
+        }
+    }
+}
+
+/// Whether the ring fills with what is left or with what has been spent.
+nonisolated enum MenuBarRingSense: String, CaseIterable, Sendable {
+    case remaining
+    case used
+
+    var displayName: String {
+        switch self {
+        case .remaining: String(localized: "Remaining")
+        case .used: String(localized: "Used")
+        }
+    }
+}
+
 /// Per-provider menu-bar text settings. Keys: `<namespace>.menuBarUsageDisplay`,
-/// `<namespace>.menuBarDigitWidth`, `<namespace>.menuBarDigitSize`.
+/// `<namespace>.menuBarDigitWidth`, `<namespace>.menuBarDigitSize`,
+/// `<namespace>.menuBarRingSource`, `<namespace>.menuBarRingSense`.
 @MainActor
 @Observable
 final class MenuBarTextPreferences {
@@ -86,6 +118,14 @@ final class MenuBarTextPreferences {
         didSet { defaults.set(size.rawValue, forKey: keys.size) }
     }
 
+    var ringSource: MenuBarRingSource {
+        didSet { defaults.set(ringSource.rawValue, forKey: keys.ringSource) }
+    }
+
+    var ringSense: MenuBarRingSense {
+        didSet { defaults.set(ringSense.rawValue, forKey: keys.ringSense) }
+    }
+
     /// The proportional system font at the chosen width and size.
     var font: NSFont {
         NSFont.systemFont(ofSize: size.pointSize, weight: .regular, width: width.fontWidth)
@@ -98,11 +138,15 @@ final class MenuBarTextPreferences {
         let usageDisplay: String
         let width: String
         let size: String
+        let ringSource: String
+        let ringSense: String
 
         init(namespace: String) {
             usageDisplay = "\(namespace).menuBarUsageDisplay"
             width = "\(namespace).menuBarDigitWidth"
             size = "\(namespace).menuBarDigitSize"
+            ringSource = "\(namespace).menuBarRingSource"
+            ringSense = "\(namespace).menuBarRingSense"
         }
     }
 
@@ -113,5 +157,9 @@ final class MenuBarTextPreferences {
             .flatMap(MenuBarUsageDisplay.init(rawValue:)) ?? .fiveHour
         width = defaults.string(forKey: keys.width).flatMap(MenuBarDigitWidth.init(rawValue:)) ?? .normal
         size = defaults.string(forKey: keys.size).flatMap(MenuBarDigitSize.init(rawValue:)) ?? .regular
+        ringSource = defaults.string(forKey: keys.ringSource)
+            .flatMap(MenuBarRingSource.init(rawValue:)) ?? .off
+        ringSense = defaults.string(forKey: keys.ringSense)
+            .flatMap(MenuBarRingSense.init(rawValue:)) ?? .remaining
     }
 }

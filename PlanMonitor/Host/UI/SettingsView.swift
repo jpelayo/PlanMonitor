@@ -133,6 +133,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var claudeControls: some View {
         SessionTrackingControls(preferences: viewModel.sessionPreferences)
+        MenuBarRingControl(preferences: viewModel.menuBarText)
         MenuBarUsageDisplayControl(preferences: viewModel.menuBarText)
         MenuBarTextControls(preferences: viewModel.menuBarText)
         providerAccount(
@@ -146,6 +147,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var codexControls: some View {
         SessionTrackingControls(preferences: codexViewModel.sessionPreferences)
+        MenuBarRingControl(preferences: codexViewModel.menuBarText)
         MenuBarUsageDisplayControl(preferences: codexViewModel.menuBarText)
         MenuBarTextControls(preferences: codexViewModel.menuBarText)
         providerAccount(
@@ -159,6 +161,7 @@ struct SettingsView: View {
     @ViewBuilder
     private var grokControls: some View {
         SessionTrackingControls(preferences: grokViewModel.sessionPreferences)
+        MenuBarRingControl(preferences: grokViewModel.menuBarText)
         MenuBarUsageDisplayControl(preferences: grokViewModel.menuBarText)
         MenuBarTextControls(preferences: grokViewModel.menuBarText)
         providerAccount(

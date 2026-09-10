@@ -33,6 +33,12 @@ actor OpenRouterBudgetPollingService {
     /// entirely when the section is off and the trailing spend lines are all that's
     /// needed — the same query serves both, so this only gates nothing extra today.
     private var recentModelsWindow: RecentModelsWindow = .fifteenMinutes
+    // Last successful cycle's model feeds and the outcome built from them. Both feeds are fetched
+    // every cycle whatever the window is, so a window change can be answered from these instead of
+    // waiting out the interval — which is what made the recent-models list look frozen.
+    private var cachedAnalytics: [AnalyticsRowDTO]?
+    private var cachedDayAnalytics: [AnalyticsRowDTO]?
+    private var lastOutcome: PollOutcome?
 
     private var consecutiveFailures = 0
     private var cycleGeneration = 0
@@ -57,9 +63,19 @@ actor OpenRouterBudgetPollingService {
         self.onSchedule = onSchedule
     }
 
-    /// Applies immediately by interrupting the pending sleep — without triggering a fetch.
+    /// Applies at once, without a fetch: both analytics feeds are already in hand, so the new
+    /// window is re-assembled from them and republished immediately.
     func setRecentModelsWindow(_ window: RecentModelsWindow) {
+        guard window != recentModelsWindow else { return }
         recentModelsWindow = window
+        guard var outcome = lastOutcome else { return }
+        outcome.snapshot.recentModels = OpenRouterBudgetAssembler.recentModels(
+            analytics: cachedAnalytics,
+            dayAnalytics: cachedDayAnalytics,
+            window: window
+        )
+        lastOutcome = outcome
+        onUpdate?(outcome)
     }
 
     func setInterval(_ newValue: TimeInterval) {
@@ -101,6 +117,9 @@ actor OpenRouterBudgetPollingService {
         cachedGuardrails = nil
         cachedAssignments = nil
         cachedActivity = nil
+        cachedAnalytics = nil
+        cachedDayAnalytics = nil
+        lastOutcome = nil
         guardrailsRefreshedAt = nil
         guardrailRefreshInterval = 6 * 3600
         guardrailsUnavailable = false
@@ -220,10 +239,14 @@ actor OpenRouterBudgetPollingService {
             guardrailsAvailable: !guardrailsUnavailable,
             now: Date()
         )
-        onUpdate?(PollOutcome(
+        let outcome = PollOutcome(
             snapshot: snapshot,
             degradedReason: degraded.isEmpty ? nil : degraded.joined(separator: " ")
-        ))
+        )
+        cachedAnalytics = analytics
+        cachedDayAnalytics = dayAnalytics
+        lastOutcome = outcome
+        onUpdate?(outcome)
     }
 
     private var shouldRefreshGuardrails: Bool {

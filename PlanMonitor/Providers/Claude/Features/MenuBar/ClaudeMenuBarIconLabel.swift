@@ -5,15 +5,17 @@
 
 import AppKit
 
-/// Claude's menu-bar label: the icon follows weekly severity, the digits follow whichever windows
-/// the user picked (5-hour, weekly, or both). Rendered by `StatusItemController` as a real AppKit
-/// title, never rasterised.
+/// Claude's menu-bar label: the icon's *colour* follows weekly severity, its *ring* follows the
+/// window the user picked for it (or stays whole), and the digits follow whichever windows they were
+/// pointed at. Rendered by `StatusItemController` as a real AppKit title, never rasterised.
 enum ClaudeMenuBarLabel {
     static func make(
         usageData: ClaudeUsageData,
         authState: ClaudeAuthState,
         showRemainingPercent: Bool,
         usageDisplay: MenuBarUsageDisplay,
+        ringSource: MenuBarRingSource,
+        ringSense: MenuBarRingSense,
         font: NSFont
     ) -> MenuBarLabel {
         let digits = authState.isAuthenticated
@@ -30,6 +32,12 @@ enum ClaudeMenuBarLabel {
         return MenuBarLabel(
             symbolName: "cedisign.ring.dashed",
             fallbackSymbol: "ring.dashed",
+            variableValue: MenuBarUsageRing.fill(
+                source: ringSource,
+                sense: ringSense,
+                fiveHour: usageData.fiveHourUtilization,
+                week: usageData.sevenDayUtilization
+            ),
             symbolTint: ClaudeMenuBarUsageSeverity(usageData.sevenDayUtilization).iconTint,
             text: percentage,
             textTint: percentage == nil ? nil : ClaudeMenuBarUsageSeverity(digits.severityUtilization).tint,

@@ -63,12 +63,12 @@ nonisolated enum OpenRouterBudgetAssembler {
 
         let recent = analytics.map { rows in RecentActivity(rows: rows, now: now) }
 
-        // Short windows reuse the minute feed; long ones need the hourly feed, which
-        // is the only one that reaches back a full day.
-        let modelSource = recentModelsWindow.usesMinuteGranularity ? analytics : dayAnalytics
-        let recentModels = modelSource.map {
-            RecentActivity.models(from: $0, window: recentModelsWindow, now: now)
-        } ?? []
+        let recentModels = recentModels(
+            analytics: analytics,
+            dayAnalytics: dayAnalytics,
+            window: recentModelsWindow,
+            now: now
+        )
 
         let spentThisWeek = keys.isEmpty ? nil : keys.reduce(Decimal(0)) { $0 + $1.usage(in: .weekly) }
         // Rolling 24 hours, from the hourly query. Distinct from `spentToday`, which
@@ -103,6 +103,24 @@ nonisolated enum OpenRouterBudgetAssembler {
     }
 
     // MARK: - Key budgets
+
+    /// Every model called inside `window`, newest first.
+    ///
+    /// Split out of `assemble` so the polling service can re-run just this part when the user
+    /// changes the window: both analytics feeds are fetched every cycle, so the answer is already
+    /// in hand and no API call is needed.
+    ///
+    /// Short windows reuse the minute feed; long ones need the hourly feed, which is the only one
+    /// that reaches back a full day.
+    static func recentModels(
+        analytics: [AnalyticsRowDTO]?,
+        dayAnalytics: [AnalyticsRowDTO]?,
+        window: RecentModelsWindow,
+        now: Date = Date()
+    ) -> [ModelUsage] {
+        let source = window.usesMinuteGranularity ? analytics : dayAnalytics
+        return source.map { RecentActivity.models(from: $0, window: window, now: now) } ?? []
+    }
 
     private static func makeKeyBudget(_ key: APIKeyDTO, now: Date) -> KeyBudget? {
         // No cap means nothing to gauge against — the key is listed as spend only.
@@ -242,6 +260,11 @@ nonisolated private struct RecentActivity {
     /// Buckets are start-of-interval stamps, so an hourly bucket at 14:00 covers calls
     /// up to 14:59. Including a bucket whose *end* falls inside the window keeps the
     /// current partial hour from being dropped.
+    ///
+    /// **Every** model in the window is returned, deliberately uncapped: the section exists to
+    /// answer "what have I been running", and a cap silently hid models. Buckets are coarse, so
+    /// models sharing one bucket tie on `lastCalledAt` and fall back to spend — which is exactly
+    /// how a just-adopted, barely-used model used to be ranked last and cut. The dropdown scrolls.
     static func models(
         from rows: [AnalyticsRowDTO],
         window: RecentModelsWindow,
@@ -276,7 +299,5 @@ nonisolated private struct RecentActivity {
 
         return byModel.values
             .sorted { ($0.lastCalledAt, $0.spend) > ($1.lastCalledAt, $1.spend) }
-            .prefix(5)
-            .map { $0 }
     }
 }

@@ -16,6 +16,32 @@ struct MenuBarUsageDisplayControl: View {
     }
 }
 
+/// The ring around a provider's menu-bar glyph: which window fills it, and whether it fills with
+/// what is left or what is spent. A separate view for the same reason as the control above —
+/// OpenRouter's ring is money-driven and computed by its own label maker, so it must not inherit
+/// this one by default.
+struct MenuBarRingControl: View {
+    @Bindable var preferences: MenuBarTextPreferences
+
+    var body: some View {
+        Picker(String(localized: "Menu bar ring"), selection: $preferences.ringSource) {
+            ForEach(MenuBarRingSource.allCases, id: \.self) { source in
+                Text(source.displayName).tag(source)
+            }
+        }
+        .pickerStyle(.menu)
+
+        Picker(String(localized: "Ring shows"), selection: $preferences.ringSense) {
+            ForEach(MenuBarRingSense.allCases, id: \.self) { sense in
+                Text(sense.displayName).tag(sense)
+            }
+        }
+        .pickerStyle(.menu)
+        // Disabled rather than hidden: the section keeps its height and the option stays visible.
+        .disabled(preferences.ringSource == .off)
+    }
+}
+
 /// Width and size of the digits a provider shows in the menu bar. Same two pickers in every
 /// provider section.
 struct MenuBarTextControls: View {
