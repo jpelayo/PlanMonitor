@@ -60,6 +60,32 @@ nonisolated struct OpenRouterSnapshot: Codable, Equatable, Sendable {
         let fractions = keyBudgets.map(\.usedFraction) + guardrailBudgets.map(\.worstFraction)
         return fractions.max()
     }
+
+    /// Spend against the pool of every capped key's headroom — the *Limits* ring.
+    ///
+    /// Each key counts once, at the limit that actually binds it: a key under both its own cap and
+    /// a guardrail contributes its spend once and the lower of the two limits. Counting both entries
+    /// would double the spend and, worse, credit the key with headroom it does not have. Keys with no
+    /// cap at all are left out — there is nothing to gauge them against. `nil` when no key is capped.
+    var pooledBudgetFraction: Double? {
+        var bindingLimit: [String: (spent: Decimal, limit: Decimal)] = [:]
+        func consider(keyHash: String, spent: Decimal, limit: Decimal) {
+            if let current = bindingLimit[keyHash], current.limit <= limit { return }
+            bindingLimit[keyHash] = (spent, limit)
+        }
+        for key in keyBudgets {
+            consider(keyHash: key.keyHash, spent: key.spent, limit: key.limit)
+        }
+        for guardrail in guardrailBudgets {
+            for member in guardrail.members {
+                consider(keyHash: member.keyHash, spent: member.spent, limit: member.limit)
+            }
+        }
+        guard !bindingLimit.isEmpty else { return nil }
+        let spent = bindingLimit.values.reduce(Decimal(0)) { $0 + $1.spent }
+        let limit = bindingLimit.values.reduce(Decimal(0)) { $0 + $1.limit }
+        return Money.fraction(spent: spent, limit: limit)
+    }
 }
 
 nonisolated struct AccountCredit: Codable, Equatable, Sendable {

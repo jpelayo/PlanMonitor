@@ -51,6 +51,33 @@ final class OpenRouterBudgetViewModel {
         }
     }
 
+    /// What fills the ring around the menu-bar glyph.
+    var ringSource: OpenRouterRingSource = .off {
+        didSet { defaults.set(ringSource.rawValue, forKey: "openrouter.ringSource") }
+    }
+
+    /// The *Credit* ring's 100%, tracked across polls and launches. Cleared whenever the account
+    /// behind the key can have changed, so a new account starts from its own first balance.
+    private(set) var creditRingMark: CreditRingMark
+
+    /// `MenuBarLabel.variableValue` for the glyph: `nil` leaves the ring whole. Overdrawn pins
+    /// every gauge empty — inference is blocked, and the ring should say so — and a gauge with
+    /// nothing to measure (no mark yet, no capped keys) is the same whole ring as `off`.
+    var ringFill: Double? {
+        guard connectionState.showsBudgets, ringSource != .off else { return nil }
+        if snapshot.accountCredit?.isNegative == true { return 0 }
+        switch ringSource {
+        case .off:
+            return nil
+        case .credit:
+            return snapshot.accountCredit.flatMap { creditRingMark.fill(for: $0) }
+        case .limits:
+            return snapshot.pooledBudgetFraction.map { MenuBarUsageRing.quantise(min(max(1 - $0, 0), 1)) }
+        case .worst:
+            return snapshot.worstBudgetFraction.map { MenuBarUsageRing.quantise(min(max(1 - $0, 0), 1)) }
+        }
+    }
+
     let sessionPreferences: SessionTrackingPreferences
     let sessionTracker: SessionTracker
     let menuBarText: MenuBarTextPreferences
@@ -76,6 +103,7 @@ final class OpenRouterBudgetViewModel {
         self.sessionPreferences = SessionTrackingPreferences(namespace: "openrouter", defaults: defaults)
         self.sessionTracker = SessionTracker(namespace: "openrouter", defaults: defaults)
         self.menuBarText = MenuBarTextPreferences(namespace: "openrouter", defaults: defaults)
+        self.creditRingMark = CreditRingMark.load(from: defaults)
 
         restorePreferences()
         setupCallbacks()
@@ -104,6 +132,7 @@ final class OpenRouterBudgetViewModel {
         guard let stored else {
             connectionState = .disconnected
             snapshotStore.clear()
+            clearCreditRingMark()
             AppRuntimeState.recordBreadcrumb("provider-openrouter-credential-missing")
             return
         }
@@ -169,6 +198,9 @@ final class OpenRouterBudgetViewModel {
             )
             await apiClient.setCredential(key)
             isDemoMode = false
+            if previousState.identity?.label != identity.label {
+                clearCreditRingMark()
+            }
             connectionState = .connected(identity)
             errorMessage = nil
             AppRuntimeState.recordBreadcrumb("provider-openrouter-connected")
@@ -231,7 +263,13 @@ final class OpenRouterBudgetViewModel {
         isDemoMode = false
         nextRefreshAt = nil
         snapshotStore.clear()
+        clearCreditRingMark()
         CacheJanitor.cleanupTransientCaches(reason: "openrouter-disconnect")
+    }
+
+    private func clearCreditRingMark() {
+        creditRingMark = CreditRingMark()
+        creditRingMark.save(to: defaults)
     }
 
     func handleMemoryPressure(_ level: AppMemoryPressureLevel) async {
@@ -273,6 +311,13 @@ final class OpenRouterBudgetViewModel {
 
     private func apply(_ outcome: PollOutcome) {
         guard !isDemoMode else { return }
+        if let credit = outcome.snapshot.accountCredit {
+            let observed = creditRingMark.observing(credit)
+            if observed != creditRingMark {
+                creditRingMark = observed
+                observed.save(to: defaults)
+            }
+        }
         snapshot = outcome.snapshot
         lastUpdated = outcome.snapshot.fetchedAt
         isStale = false
@@ -333,6 +378,10 @@ final class OpenRouterBudgetViewModel {
             recentModelsWindow = window
         }
         spendBreakdownExpanded = defaults.bool(forKey: "openrouter.spendBreakdownExpanded")
+        if let raw = defaults.string(forKey: "openrouter.ringSource"),
+           let source = OpenRouterRingSource(rawValue: raw) {
+            ringSource = source
+        }
     }
 }
 
@@ -347,6 +396,10 @@ extension OpenRouterBudgetViewModel: DemoCapable {
         Task { await pollingService.stop() }
         nextRefreshAt = nil
         snapshot = DemoSnapshot.make()
+        if let credit = snapshot.accountCredit {
+            // Seeded from lifetime purchases so the Credit ring reads partly drained, not full.
+            creditRingMark = CreditRingMark(mark: credit.totalPurchased, lastRemaining: credit.remaining)
+        }
         lastUpdated = snapshot.fetchedAt
         isStale = false
         errorMessage = nil

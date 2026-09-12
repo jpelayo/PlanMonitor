@@ -173,6 +173,7 @@ struct PlanTrackerApp: App {
                             snapshot: openRouter.snapshot,
                             connectionState: openRouter.connectionState,
                             display: openRouter.menuBarDisplay,
+                            ringFill: openRouter.ringFill,
                             font: openRouter.menuBarText.font
                         )
                     },

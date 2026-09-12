@@ -10,13 +10,17 @@ enum OpenRouterMenuBarLabel {
         snapshot: OpenRouterSnapshot,
         connectionState: ConnectionState,
         display: MenuBarDisplay,
+        ringFill: Double?,
         font: NSFont
     ) -> MenuBarLabel {
         let text = display == .iconOnly ? nil : valueText(snapshot: snapshot, connectionState: connectionState, display: display)
         return MenuBarLabel(
             symbolName: "dollarsign.ring.dashed",
             fallbackSymbol: "ring.dashed",
-            variableValue: fillLevel(snapshot: snapshot, connectionState: connectionState),
+            // Computed by the view model from its `ringSource` (credit since top-up, pooled
+            // limits, worst budget, or off), because two of those need state the snapshot does
+            // not carry. `nil` leaves the ring whole.
+            variableValue: ringFill,
             symbolTint: creditSeverity(snapshot: snapshot, connectionState: connectionState).iconTint,
             text: text,
             textTint: text == nil ? nil : budgetSeverity(snapshot: snapshot, connectionState: connectionState).tint,
@@ -24,20 +28,6 @@ enum OpenRouterMenuBarLabel {
             accessibilityLabel: String(localized: "OpenRouter credit"),
             accessibilityValue: text ?? String(localized: "Not connected")
         )
-    }
-
-    /// How full the ring sits.
-    ///
-    /// Driven by the tightest *real* constraint — the worst key or guardrail budget,
-    /// which have genuine denominators and reset windows. Lifetime credit does not:
-    /// `total_credits` is cumulative purchases, so a ring fed from it would drain
-    /// steadily to empty and stay there no matter how healthy the account was.
-    /// An overdrawn balance still pins the ring empty, because that state is real.
-    private static func fillLevel(snapshot: OpenRouterSnapshot, connectionState: ConnectionState) -> Double? {
-        guard connectionState.showsBudgets else { return nil }
-        if snapshot.accountCredit?.isNegative == true { return 0 }
-        guard let worst = snapshot.worstBudgetFraction else { return 1 }
-        return min(max(1 - worst, 0), 1)
     }
 
     private static func creditSeverity(snapshot: OpenRouterSnapshot, connectionState: ConnectionState) -> BudgetSeverity {

@@ -128,6 +128,9 @@
 "Requests are blocked until you top up." = "Las peticiones están bloqueadas hasta que recargues.";
 "Show disabled keys" = "Mostrar claves desactivadas";
 "Show recent models" = "Mostrar modelos recientes";
+"Limits" = "Límites";
+"Worst budget" = "Peor presupuesto";
+"100% is your balance right after the last top-up." = "El 100 % es tu saldo justo después de la última recarga.";
 "Spending" = "Gasto";
 "Spending breakdown" = "Desglose de gasto";
 "Stale — last updated %@" = "Desactualizado — última actualización %@";

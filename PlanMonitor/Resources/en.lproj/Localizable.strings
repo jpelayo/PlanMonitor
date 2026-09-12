@@ -125,6 +125,9 @@
 "Requests are blocked until you top up." = "Requests are blocked until you top up.";
 "Show disabled keys" = "Show disabled keys";
 "Show recent models" = "Show recent models";
+"Limits" = "Limits";
+"Worst budget" = "Worst budget";
+"100% is your balance right after the last top-up." = "100% is your balance right after the last top-up.";
 "Spending" = "Spending";
 "Spending breakdown" = "Spending breakdown";
 "Stale — last updated %@" = "Stale — last updated %@";

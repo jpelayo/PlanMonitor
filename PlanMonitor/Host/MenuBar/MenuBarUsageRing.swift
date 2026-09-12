@@ -31,7 +31,12 @@ nonisolated enum MenuBarUsageRing {
         guard let used else { return nil }
 
         let consumed = min(max(used / 100, 0), 1)
-        let shown = sense == .remaining ? 1 - consumed : consumed
-        return (shown * Double(steps)).rounded() / Double(steps)
+        return quantise(sense == .remaining ? 1 - consumed : consumed)
+    }
+
+    /// Snaps a 0–1 fraction to the nearest of the ring's twelve steps. Every ring goes through
+    /// this — OpenRouter's money gauges included — so all four re-render on the same boundaries.
+    static func quantise(_ fraction: Double) -> Double {
+        (fraction * Double(steps)).rounded() / Double(steps)
     }
 }

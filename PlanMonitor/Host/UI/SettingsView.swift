@@ -204,6 +204,19 @@ struct SettingsView: View {
             }
         }
         .pickerStyle(.menu)
+        VStack(alignment: .leading, spacing: 2) {
+            Picker(String(localized: "Menu bar ring"), selection: $openRouterViewModel.ringSource) {
+                ForEach(OpenRouterRingSource.allCases, id: \.self) { source in
+                    Text(source.displayName).tag(source)
+                }
+            }
+            .pickerStyle(.menu)
+            if openRouterViewModel.ringSource == .credit {
+                Text(String(localized: "100% is your balance right after the last top-up."))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
         Toggle(String(localized: "Show disabled keys"), isOn: $openRouterViewModel.showDisabledKeys)
         Toggle(String(localized: "Show recent models"), isOn: $openRouterViewModel.showRecentModels)
         if openRouterViewModel.showRecentModels {
