@@ -4,6 +4,7 @@ struct GrokMenuBarView: View {
     @Bindable var viewModel: GrokUsageViewModel
     @Bindable var providers: EnabledProviders
     @Bindable var preferences: GlobalPreferences
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -91,20 +92,28 @@ struct GrokMenuBarView: View {
                 }
                 SessionTimeLine(text: viewModel.dailySessionFormatted) {
                     let status = viewModel.displayedGrokSystemStatus
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(colorForGrokStatus(status))
-                            .frame(width: 6, height: 6)
-                        Text(titleForGrokStatus(status))
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(colorForGrokStatus(status))
-                            .lineLimit(1)
+                    // The pill is a link to the status page, styled as itself: `.plain` keeps
+                    // the capsule exactly as drawn, and `openURL` hands off to the default browser.
+                    Button {
+                        openURL(GrokStatusService.statusPageURL)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Circle()
+                                .fill(colorForGrokStatus(status))
+                                .frame(width: 6, height: 6)
+                            Text(titleForGrokStatus(status))
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(colorForGrokStatus(status))
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(colorForGrokStatus(status).opacity(0.12))
+                        .clipShape(.capsule)
+                        .fixedSize(horizontal: true, vertical: false)
                     }
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(colorForGrokStatus(status).opacity(0.12))
-                    .clipShape(.capsule)
-                    .fixedSize(horizontal: true, vertical: false)
+                    .buttonStyle(.plain)
+                    .help(String(localized: "Open status page"))
                 }
                 ExtraExpenditureLine(
                     enabled: extraExpenditureEnabled,

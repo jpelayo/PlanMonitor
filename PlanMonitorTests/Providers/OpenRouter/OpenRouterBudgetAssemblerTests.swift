@@ -295,15 +295,61 @@ struct SpendWindowTests {
         #expect(snapshot.spentThisMonth == Decimal(string: "15.5")!)
     }
 
-    /// /activity ends yesterday, so today's per-key total is added to make the window
-    /// a genuine rolling 30 days.
-    @Test("Last 30 days is activity plus today")
+    /// /activity ends yesterday, so today is added to make the window a genuine rolling 30
+    /// days. With no hourly feed, today falls back to the per-key counters.
+    @Test("Last 30 days is activity plus today, from the counters when the ledger is missing")
     func last30AddsToday() {
         let snapshot = assemble(
             keys: [key(hash: "a", daily: 3), key(hash: "b", daily: Decimal(string: "0.5")!)],
-            activity: activityRows([10, 20, Decimal(string: "1.25")!])
+            activity: activityRows([10, 20, Decimal(string: "1.25")!]),
+            dayAnalytics: nil
         )
         #expect(snapshot.spentLast30Days == Decimal(string: "34.75")!)
+    }
+
+    /// When the ledger is present it is the source of today for the 30-day figure too, so the
+    /// row cannot disagree with the "Today" row above it.
+    @Test("Last 30 days uses the ledger's today when the hourly feed is present")
+    func last30PrefersLedgerToday() {
+        let snapshot = assemble(
+            keys: [key(hash: "a", daily: 3)],
+            activity: activityRows([10, 20]),
+            dayAnalytics: [analyticsRow(model: "m", minutesAgo: 60, usage: 0.75, tokens: 1)]
+        )
+        #expect(snapshot.spentLast30Days == Decimal(string: "30.75")!)
+    }
+
+    /// The regression: the trailing 15-minute figure once exceeded "today", because they came
+    /// from different endpoints. Today now sums the same ledger, and ignores `usage_daily`.
+    @Test("Today is summed from the hourly ledger, not the per-key counters")
+    func todayComesFromTheLedger() {
+        let snapshot = assemble(
+            keys: [key(hash: "a", daily: 99)],
+            dayAnalytics: [
+                analyticsRow(model: "m", minutesAgo: 30, usage: 0.25, tokens: 1),
+                analyticsRow(model: "m", minutesAgo: 60, usage: 0.50, tokens: 1)
+            ]
+        )
+        #expect(snapshot.spentToday == Decimal(string: "0.75")!)
+    }
+
+    /// The fixed `now` is 01:46 UTC, so a bucket 120 minutes back is yesterday. Hourly buckets
+    /// are stamped at the start of the hour and never straddle midnight, so ">= 00:00 UTC" is
+    /// the whole rule.
+    @Test("Today stops at UTC midnight")
+    func todayStopsAtUTCMidnight() {
+        let snapshot = assemble(dayAnalytics: [
+            analyticsRow(model: "m", minutesAgo: 60, usage: 0.25, tokens: 1),    // 00:46 today
+            analyticsRow(model: "m", minutesAgo: 120, usage: 5.00, tokens: 1)    // 23:46 yesterday
+        ])
+        #expect(snapshot.spentToday == Decimal(string: "0.25")!)
+        #expect(snapshot.spentLast24Hours == Decimal(string: "5.25")!)   // rolling window keeps both
+    }
+
+    @Test("Without the hourly feed there is no today figure, even with key counters")
+    func noLedgerMeansNoToday() {
+        let snapshot = assemble(keys: [key(hash: "a", daily: 3)], dayAnalytics: nil)
+        #expect(snapshot.spentToday == nil)
     }
 
     @Test("Without activity the 30-day figure is nil, never a wrong number")

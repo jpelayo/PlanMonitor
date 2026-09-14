@@ -56,9 +56,24 @@ nonisolated enum OpenRouterBudgetAssembler {
         // Current-month spend needs no extra request: the per-key monthly counters are
         // already live and already include today.
         let spentThisMonth = keys.isEmpty ? nil : keys.reduce(Decimal(0)) { $0 + $1.usage(in: .monthly) }
-        let spentToday = keys.reduce(Decimal(0)) { $0 + $1.usage(in: .daily) }
+
+        // Today comes from the hourly ledger, not from `usage_daily`. The trailing 15-minute and
+        // hour figures are ledger sums too, and the per-key counters can trail the ledger, omit
+        // BYOK, or miss a key `/keys` no longer lists — which once put "last 15 minutes" above
+        // "today". One source keeps the three ordered. Hourly buckets are stamped at the start
+        // of the hour and never straddle midnight, so "≥ 00:00 UTC" is the whole rule.
+        let startOfTodayUTC = ResetWindowCalculator.utcCalendar.startOfDay(for: now)
+        let ledgerToday = dayAnalytics.map { rows in
+            rows.reduce(Decimal(0)) { total, row in
+                guard let bucket = row.bucket, bucket >= startOfTodayUTC else { return total }
+                return total + (row.totalUsage?.value ?? 0)
+            }
+        }
+        // The 30-day figure needs *some* today on top of `/activity`, which ends yesterday. The
+        // counters are what it used before, so they stay as the fallback for a failed hourly call.
+        let counterToday = keys.reduce(Decimal(0)) { $0 + $1.usage(in: .daily) }
         let spentLast30Days = activity.map { rows in
-            rows.reduce(Decimal(0)) { $0 + ($1.usage ?? 0) } + spentToday
+            rows.reduce(Decimal(0)) { $0 + ($1.usage ?? 0) } + (ledgerToday ?? counterToday)
         }
 
         let recent = analytics.map { rows in RecentActivity(rows: rows, now: now) }
@@ -93,7 +108,7 @@ nonisolated enum OpenRouterBudgetAssembler {
             spentLast30Days: spentLast30Days,
             spentLast15Minutes: recent?.spentLast15Minutes,
             spentLastHour: recent?.spentLastHour,
-            spentToday: keys.isEmpty ? nil : spentToday,
+            spentToday: ledgerToday,
             spentLast24Hours: spentLast24Hours,
             spentThisWeek: spentThisWeek,
             projectedThisMonth: projected,

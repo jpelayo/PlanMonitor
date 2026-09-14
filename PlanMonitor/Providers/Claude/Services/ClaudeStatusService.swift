@@ -28,6 +28,8 @@ enum ClaudeSystemStatus: Sendable {
 final class ClaudeStatusService {
     private let session: URLSession
     private let endpoint = URL(string: "https://status.claude.com/api/v2/status.json")!
+    /// The human-readable page behind the pill; opened in the browser when the pill is clicked.
+    static let statusPageURL = URL(string: "https://status.claude.com/")!
     private let decoder: JSONDecoder
 
     init() {

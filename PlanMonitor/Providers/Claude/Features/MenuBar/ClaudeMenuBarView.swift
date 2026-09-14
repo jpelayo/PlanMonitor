@@ -12,6 +12,7 @@ struct ClaudeMenuBarView: View {
     let reviewerMode: ReviewerMode
     @State private var tapCount = 0
     @State private var lastTapTime = Date.distantPast
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -54,20 +55,28 @@ struct ClaudeMenuBarView: View {
                 }
                 SessionTimeLine(text: viewModel.dailySessionFormatted) {
                     let status = viewModel.displayedClaudeSystemStatus
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(colorForClaudeStatus(status))
-                            .frame(width: 6, height: 6)
-                        Text(titleForClaudeStatus(status))
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(colorForClaudeStatus(status))
-                            .lineLimit(1)
+                    // The pill is a link to the status page, styled as itself: `.plain` keeps
+                    // the capsule exactly as drawn, and `openURL` hands off to the default browser.
+                    Button {
+                        openURL(ClaudeStatusService.statusPageURL)
+                    } label: {
+                        HStack(spacing: 5) {
+                            Circle()
+                                .fill(colorForClaudeStatus(status))
+                                .frame(width: 6, height: 6)
+                            Text(titleForClaudeStatus(status))
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(colorForClaudeStatus(status))
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(colorForClaudeStatus(status).opacity(0.12))
+                        .clipShape(.capsule)
+                        .fixedSize(horizontal: true, vertical: false)
                     }
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(colorForClaudeStatus(status).opacity(0.12))
-                    .clipShape(.capsule)
-                    .fixedSize(horizontal: true, vertical: false)
+                    .buttonStyle(.plain)
+                    .help(String(localized: "Open status page"))
                 }
                 ExtraExpenditureLine(
                     enabled: viewModel.usageData.overageEnabled,

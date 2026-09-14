@@ -37,6 +37,7 @@
 "Grok operational" = "Grok operativo";
 "Grok degraded" = "Grok degradado";
 "Grok outage" = "Grok interrumpido";
+"Open status page" = "Abrir la página de estado";
 
 /* Settings */
 "General" = "General";

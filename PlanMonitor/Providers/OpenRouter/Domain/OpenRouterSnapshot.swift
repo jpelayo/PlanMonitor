@@ -11,15 +11,18 @@ nonisolated struct OpenRouterSnapshot: Codable, Equatable, Sendable {
     /// Spend in the current UTC calendar month. Summed from the live per-key counters,
     /// so it includes today — cross-checked against /activity to within $0.02.
     var spentThisMonth: Decimal?
-    /// Rolling 30-day spend: /activity (which ends yesterday) plus today's per-key
-    /// total. nil when /activity was unavailable.
+    /// Rolling 30-day spend: /activity (which ends yesterday) plus today — from the
+    /// hourly ledger, or the per-key counters when that call failed. nil when /activity
+    /// was unavailable.
     var spentLast30Days: Decimal?
     /// Spend in the trailing 15 minutes, from minute-granularity analytics.
     var spentLast15Minutes: Decimal?
     /// Spend in the trailing hour, same source.
     var spentLastHour: Decimal?
     /// Spend in the current UTC calendar day — the same day boundary the OpenRouter
-    /// dashboard uses, so the two agree.
+    /// dashboard uses, so the two agree. Summed from the hourly analytics ledger, the
+    /// same source as the trailing windows, so 15 minutes ≤ hour ≤ today always holds.
+    /// nil when that feed was unavailable.
     var spentToday: Decimal?
     /// Rolling 24 hours, which straddles the UTC midnight that `spentToday` resets on.
     var spentLast24Hours: Decimal?

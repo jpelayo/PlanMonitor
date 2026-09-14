@@ -39,6 +39,8 @@ nonisolated enum GrokSystemStatus: Sendable {
 final class GrokStatusService {
     private let session: URLSession
     private let endpoint = URL(string: "https://status.x.ai/feed.xml")!
+    /// The human-readable page behind the pill; opened in the browser when the pill is clicked.
+    static let statusPageURL = URL(string: "https://status.x.ai/")!
 
     init() {
         let configuration = URLSessionConfiguration.ephemeral

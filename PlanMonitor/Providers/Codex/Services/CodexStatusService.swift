@@ -30,6 +30,8 @@ enum CodexSystemStatus: Sendable {
 final class CodexStatusService {
     private let session: URLSession
     private let endpoint = URL(string: "https://status.openai.com/api/v2/status.json")!
+    /// The human-readable page behind the pill; opened in the browser when the pill is clicked.
+    static let statusPageURL = URL(string: "https://status.openai.com/")!
     private let decoder: JSONDecoder
 
     init() {
