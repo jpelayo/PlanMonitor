@@ -21,6 +21,7 @@ struct PlanTrackerApp: App {
     @State private var openRouterViewModel: OpenRouterBudgetViewModel
     @State private var enabledProviders: EnabledProviders
     @State private var preferences: GlobalPreferences
+    @State private var statusItems: StatusItemController
 
     init() {
         let launch = AppLaunchContext.current
@@ -184,6 +185,18 @@ struct PlanTrackerApp: App {
             ],
             enabledProviders: enabled
         )
+        _statusItems = State(initialValue: statusItems)
+
+        // The app's lifeline when its items cannot be shown (see `MenuBarRecoveryView`).
+        // Opened when the launch check gives up, closed as soon as the bar is healthy again.
+        router.register(.menuBarRecovery) {
+            AnyView(MenuBarRecoveryView(
+                openPlanMonitorSettings: { WindowRouter.shared.openSettings() },
+                resetPositions: { statusItems.resetPositions() }
+            ))
+        }
+        statusItems.onUnrecoverable = { router.open(.menuBarRecovery) }
+        statusItems.onRecovered = { router.close(.menuBarRecovery) }
 
         // The delegate owns lifecycle: it shows the status items and starts the coordinator
         // once the app has finished launching, and stops everything on termination.
@@ -220,7 +233,8 @@ struct PlanTrackerApp: App {
                 grokViewModel: grokViewModel,
                 openRouterViewModel: openRouterViewModel,
                 providers: enabledProviders,
-                preferences: preferences
+                preferences: preferences,
+                resetMenuBarPositions: { statusItems.resetPositions() }
             )
         }
     }
@@ -396,8 +410,23 @@ final class PlanTrackerAppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidBecomeActive(_ notification: Notification) {
         AppRuntimeState.recordBreadcrumb("did-become-active")
-        // The user may have just flipped the switch in System Settings → Login Items.
-        AppServices.shared?.preferences.refreshLoginItemState()
+        guard let services = AppServices.shared, !services.launch.isTestHost else { return }
+        // The user may have just flipped a switch in System Settings — Login Items, or the
+        // per-app Menu Bar switch that decides whether the items show at all.
+        services.preferences.refreshLoginItemState()
+        services.statusItems.checkVisibility()
+    }
+
+    /// Opening the app again — Finder, Dock, `open -a` — while it is running. If its items are
+    /// on the bar there is nothing to do; if they are not, this is the one gesture guaranteed to
+    /// reach the user, so it must put Settings on screen.
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        guard let services = AppServices.shared, !services.launch.isTestHost else { return true }
+        services.statusItems.checkVisibility()
+        if !services.statusItems.allEnabledItemsDisplayed {
+            WindowRouter.shared.openSettings()
+        }
+        return true
     }
 
     func applicationDidResignActive(_ notification: Notification) {

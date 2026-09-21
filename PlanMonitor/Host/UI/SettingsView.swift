@@ -7,6 +7,8 @@ struct SettingsView: View {
     @Bindable var openRouterViewModel: OpenRouterBudgetViewModel
     @Bindable var providers: EnabledProviders
     @Bindable var preferences: GlobalPreferences
+    /// Forgets the saved menu bar positions and rebuilds the items at the default spot.
+    let resetMenuBarPositions: () -> Void
     @State private var selectedProvider: ProviderID = .claude
 
     private var enabledProviderList: [ProviderID] {
@@ -56,6 +58,19 @@ struct SettingsView: View {
                     Text(String(localized: "(requires app restart)"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(String(localized: "Menu bar items"))
+                        Spacer()
+                        Button(String(localized: "Reset positions"), action: resetMenuBarPositions)
+                            .controlSize(.small)
+                    }
+                    Text(String(localized: "Puts the items back in their default place if a menu bar manager moved them."))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 

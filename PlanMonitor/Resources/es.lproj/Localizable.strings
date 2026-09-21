@@ -261,3 +261,13 @@
 "%lld%@ days" = "%lld%@ días";
 "Confirm letters match and press Continue" = "Comprueba que las letras coinciden y pulsa Continuar";
 "Only System Settings can turn this back on. Open Login Items and allow PlanMonitor." = "Solo Ajustes del Sistema puede volver a activarlo. Abre Elementos de inicio y permite PlanMonitor.";
+
+/* Visibilidad en la barra de menús */
+"Menu bar items" = "Elementos de la barra de menús";
+"Reset positions" = "Restablecer posiciones";
+"Puts the items back in their default place if a menu bar manager moved them." = "Devuelve los elementos a su sitio por defecto si un gestor de la barra de menús los movió.";
+"PlanMonitor is hidden from the menu bar" = "PlanMonitor está oculto en la barra de menús";
+"macOS has switched PlanMonitor off in System Settings › Menu Bar. A menu bar manager can do this without asking. PlanMonitor is running; turn it back on there and the items return." = "macOS ha desactivado PlanMonitor en Ajustes del Sistema › Barra de menús. Un gestor de la barra de menús puede hacerlo sin preguntar. PlanMonitor sigue en ejecución; vuelve a activarlo ahí y los elementos reaparecen.";
+"Open Menu Bar settings" = "Abrir ajustes de la barra de menús";
+"Open PlanMonitor settings" = "Abrir ajustes de PlanMonitor";
+"Reset menu bar positions" = "Restablecer posiciones en la barra";

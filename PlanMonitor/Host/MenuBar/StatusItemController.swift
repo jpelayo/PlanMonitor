@@ -25,6 +25,13 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private let enabledProviders: EnabledProviders
     private var entries: [ProviderID: Entry] = [:]
     private var enablementToken: AnyObject?
+    private var healAttempted = false
+
+    /// Called when an enabled item cannot be made visible by anything the app can do — on this
+    /// OS that is the per-app "Show in Menu Bar" switch, which only the user can flip.
+    var onUnrecoverable: (() -> Void)?
+    /// Called when every enabled item is displayed again.
+    var onRecovered: (() -> Void)?
 
     init(providers: [Provider], enabledProviders: EnabledProviders) {
         self.providers = Dictionary(uniqueKeysWithValues: providers.map { ($0.id, $0) })
@@ -32,8 +39,30 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         super.init()
     }
 
+    /// The one place the persisted identity of an item is spelled. Deliberately still
+    /// `PlanTracker.*`: the names carry the user's arrangement across updates, and renaming would
+    /// not dodge the OS switch anyway, which is per bundle id.
+    static func autosaveName(for provider: ProviderID) -> String {
+        "PlanTracker.\(provider.rawValue)"
+    }
+
+    /// `NSStatusItem` keeps its bookkeeping in the app's standard domain whatever suite the app
+    /// uses for its own preferences, so that is where the sanitiser and reset must look.
+    private static let autosaveDefaults = UserDefaults.standard
+
     /// Creates the items for the currently enabled providers and follows changes from then on.
     func start() {
+        // Before any item exists: AppKit reads the saved position the moment `autosaveName`
+        // is set, so a position no display can show has to be gone by then.
+        let removed = MenuBarAutosaveSanitizer.sanitise(
+            Self.autosaveDefaults,
+            autosaveNames: ProviderID.allCases.map(Self.autosaveName(for:)),
+            widestScreen: NSScreen.screens.map(\.frame.width).max() ?? 0
+        )
+        if !removed.isEmpty {
+            AppRuntimeState.recordBreadcrumb("menubar-sanitised:\(removed.count)")
+        }
+
         syncEnabledItems()
         // Synchronous: the item must appear in the same event as the checkbox click, and a
         // transient popover can hold the run loop long enough that a scheduled task would
@@ -41,6 +70,77 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         enablementToken = enabledProviders.observeSynchronously { [weak self] _ in
             self?.syncEnabledItems()
         }
+        // Hosting takes a moment; check once it has had one.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            self?.checkVisibility()
+        }
+    }
+
+    // MARK: - Self-heal
+
+    /// Forgets where macOS last placed the items and rebuilds them at the default position —
+    /// the left edge of the status area, in the app's own order. For when a menu-bar manager
+    /// moved them out of view and left the saved position behind.
+    func resetPositions() {
+        for provider in ProviderID.allCases {
+            removeItem(for: provider)
+        }
+        // After removal: AppKit persists an item's position when it goes away, so deleting
+        // first would be overwritten.
+        for provider in ProviderID.allCases {
+            let name = Self.autosaveName(for: provider)
+            for key in [
+                "NSStatusItem Preferred Position \(name)",
+                "NSStatusItem Visible \(name)",
+                "NSStatusItem VisibleCC \(name)"
+            ] {
+                Self.autosaveDefaults.removeObject(forKey: key)
+            }
+        }
+        syncEnabledItems()
+    }
+
+    var allEnabledItemsDisplayed: Bool { hiddenProviders.isEmpty }
+
+    private var hiddenProviders: [ProviderID] {
+        ProviderID.allCases.filter {
+            enabledProviders.isEnabled($0) && entries[$0] != nil && !isDisplayed($0)
+        }
+    }
+
+    /// Whether every enabled item is actually on the bar. Run once after launch, and again
+    /// whenever the app is reopened or activated — never on a timer. A hidden item gets one
+    /// attempt at self-healing (visibility on, positions reset); if that does not do it, the
+    /// cause is outside the app and `onUnrecoverable` says so.
+    func checkVisibility() {
+        let hidden = hiddenProviders
+        if hidden.isEmpty {
+            healAttempted = false
+            onRecovered?()
+            return
+        }
+        if !healAttempted {
+            healAttempted = true
+            AppRuntimeState.recordBreadcrumb("menubar-selfheal:\(hidden.map(\.rawValue).joined(separator: ","))")
+            for provider in hidden {
+                entries[provider]?.item.isVisible = true
+            }
+            resetPositions()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                self?.checkVisibility()
+            }
+            return
+        }
+        AppRuntimeState.recordBreadcrumb("menubar-unrecoverable:\(hidden.map(\.rawValue).joined(separator: ","))")
+        onUnrecoverable?()
+    }
+
+    /// On this OS the app owns no status-bar window of its own — Control Center hosts the item —
+    /// so the button's window and its occlusion are what the app can still observe.
+    private func isDisplayed(_ provider: ProviderID) -> Bool {
+        guard let entry = entries[provider], entry.item.isVisible else { return false }
+        guard let window = entry.item.button?.window else { return false }
+        return window.occlusionState.contains(.visible)
     }
 
     // MARK: - Enablement
@@ -61,7 +161,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         guard entries[provider] == nil, let definition = providers[provider] else { return }
 
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        item.autosaveName = "PlanTracker.\(provider.rawValue)"
+        item.autosaveName = Self.autosaveName(for: provider)
         item.behavior = []
         // macOS persists visibility per autosave name; an item that was removed or dragged
         // out earlier would otherwise come back hidden. Enabling means showing.

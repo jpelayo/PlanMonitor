@@ -261,3 +261,13 @@
 "%lld%@ days" = "%lld%@ days";
 "Confirm letters match and press Continue" = "Confirm letters match and press Continue";
 "Only System Settings can turn this back on. Open Login Items and allow PlanMonitor." = "Only System Settings can turn this back on. Open Login Items and allow PlanMonitor.";
+
+/* Menu bar visibility */
+"Menu bar items" = "Menu bar items";
+"Reset positions" = "Reset positions";
+"Puts the items back in their default place if a menu bar manager moved them." = "Puts the items back in their default place if a menu bar manager moved them.";
+"PlanMonitor is hidden from the menu bar" = "PlanMonitor is hidden from the menu bar";
+"macOS has switched PlanMonitor off in System Settings › Menu Bar. A menu bar manager can do this without asking. PlanMonitor is running; turn it back on there and the items return." = "macOS has switched PlanMonitor off in System Settings › Menu Bar. A menu bar manager can do this without asking. PlanMonitor is running; turn it back on there and the items return.";
+"Open Menu Bar settings" = "Open Menu Bar settings";
+"Open PlanMonitor settings" = "Open PlanMonitor settings";
+"Reset menu bar positions" = "Reset menu bar positions";
