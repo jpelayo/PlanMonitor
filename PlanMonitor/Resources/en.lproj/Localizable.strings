@@ -262,6 +262,13 @@
 "Confirm letters match and press Continue" = "Confirm letters match and press Continue";
 "Only System Settings can turn this back on. Open Login Items and allow PlanMonitor." = "Only System Settings can turn this back on. Open Login Items and allow PlanMonitor.";
 
+/* Codex hidden gauges */
+"Show hidden gauges" = "Show hidden gauges";
+"Shows limits OpenAI reports outside Codex's own, such as ChatGPT's. What they count is not documented." = "Shows limits OpenAI reports outside Codex's own, such as ChatGPT's. What they count is not documented.";
+
+/* Codex reset credits */
+"Limit resets available: %lld" = "Limit resets available: %lld";
+
 /* Menu bar visibility */
 "Menu bar items" = "Menu bar items";
 "Reset positions" = "Reset positions";

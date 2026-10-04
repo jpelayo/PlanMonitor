@@ -31,7 +31,9 @@ struct ClaudeLoginView: View {
             })
             .id(webViewID)
         }
-        .frame(width: 480, height: 640)
+        // Taller than the page needs, and the same height for all three providers: a cookie
+        // banner pinned to the bottom of the web view overlapped the sign-in buttons at 640.
+        .frame(width: 480, height: 800)
         .onAppear {
             webViewID = UUID()
             NSApp.activate(ignoringOtherApps: true)

@@ -67,9 +67,10 @@ struct GrokLoginView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        // Taller than the donor's 736: the approval page puts its Continue button low, and
-        // at the old height it sat at the very bottom edge.
-        .frame(width: 480, height: 846)
+        // One height for all three sign-in windows. Grok needs the room in its own right: the
+        // approval page puts its Continue button low, and at the donor's 736 it sat at the very
+        // bottom edge — 800 keeps that clear.
+        .frame(width: 480, height: 800)
         .onAppear {
             NSApp.setActivationPolicy(.regular)
             NSApp.activate(ignoringOtherApps: true)

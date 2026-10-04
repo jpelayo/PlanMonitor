@@ -14,6 +14,12 @@ actor CodexUsagePollingService {
     private var cachedAutoTopUp: OpenAIAutoTopUpSettings?
     private var lastMetadataRefreshAt: Date?
     private var metadataRefreshInterval: TimeInterval = 6 * 3600
+    /// Off by default: limits from subtrees the app does not recognise are not Codex's.
+    private var showHiddenGauges = false
+    /// The last cycle's inputs, kept so flipping the toggle re-maps what is already in hand
+    /// instead of spending a fetch on data that has not changed.
+    private var lastSnapshot: OpenAIUsageSnapshot?
+    private var lastPlanTier: CodexPlanTier = .unknown
 
     private var onUsageUpdate: (@Sendable (CodexUsageData) -> Void)?
     private var onError: (@Sendable (Error) -> Void)?
@@ -91,11 +97,22 @@ actor CodexUsagePollingService {
         }
     }
 
+    /// Applies at once, without a fetch: every limit is already in hand, hidden ones included,
+    /// so the change is a re-map of the last cycle's snapshot.
+    func setShowHiddenGauges(_ show: Bool) {
+        guard show != showHiddenGauges else { return }
+        showHiddenGauges = show
+        guard let snapshot = lastSnapshot else { return }
+        onUsageUpdate?(makeUsageData(snapshot: snapshot, planTier: lastPlanTier, autoTopUp: cachedAutoTopUp))
+    }
+
     func resetSteadyState() {
         cachedPlanTier = .unknown
         cachedAutoTopUp = nil
         lastMetadataRefreshAt = nil
         metadataRefreshInterval = 6 * 3600
+        lastSnapshot = nil
+        lastPlanTier = .unknown
     }
 
     func handleMemoryPressure(_ level: AppMemoryPressureLevel) {
@@ -128,11 +145,24 @@ actor CodexUsagePollingService {
             cachedAutoTopUp = refreshed
         }
         let autoTopUp = cachedAutoTopUp
-        let billing = snapshot.billing
 
         let planLabel = profile?.planLabel ?? snapshot.planLabel
         let planTier = resolvePlanTier(from: planLabel, refreshedMetadata: shouldRefreshMetadata)
-        let slots = mapLimitsToSlots(snapshot.limits)
+        lastSnapshot = snapshot
+        lastPlanTier = planTier
+        return makeUsageData(snapshot: snapshot, planTier: planTier, autoTopUp: autoTopUp)
+    }
+
+    private func makeUsageData(
+        snapshot: OpenAIUsageSnapshot,
+        planTier: CodexPlanTier,
+        autoTopUp: OpenAIAutoTopUpSettings?
+    ) -> CodexUsageData {
+        let billing = snapshot.billing
+        // Hidden limits are filtered before mapping, not after: a stranger must never take a
+        // slot a real Codex limit would have had.
+        let visibleLimits = showHiddenGauges ? snapshot.limits : snapshot.limits.filter { !$0.isHidden }
+        let slots = mapLimitsToSlots(visibleLimits)
 
         return CodexUsageData(
             fiveHourUtilization: slots.first?.utilization,
@@ -160,7 +190,8 @@ actor CodexUsagePollingService {
             overageUsedCredits: Self.spentCredits(autoTopUp),
             overageCurrency: (billing.spendLimit ?? autoTopUp?.monthlyLimit) == nil ? nil : "USD",
             overageEnabled: autoTopUp?.isEnabled,
-            overageOutOfCredits: billing.overageLimitReached ?? billing.spendLimitReached
+            overageOutOfCredits: billing.overageLimitReached ?? billing.spendLimitReached,
+            resetCreditsAvailable: snapshot.resetCreditsAvailable
         )
     }
 
@@ -302,7 +333,9 @@ actor CodexUsagePollingService {
         if containsAny(in: normalized, keywords: ["hour", "hours"]) { score += 80 }
         if containsAny(in: normalized, keywords: ["day", "week", "weekly"]) { score -= 90 }
 
-        if let hours = hoursUntilReset(for: limit) {
+        if let seconds = limit.windowSeconds {
+            score += seconds <= Self.shortWindowHours * 3600 ? 200 : -200
+        } else if let hours = hoursUntilResetIfUnstated(for: limit) {
             if hours > 0, hours <= 12 {
                 score += 120
             } else if hours > 12, hours <= 36 {
@@ -325,7 +358,9 @@ actor CodexUsagePollingService {
         if containsAny(in: normalized, keywords: ["7d", "7_day", "seven_day", "weekly", "week"]) { score += 180 }
         if containsAny(in: normalized, keywords: ["hour", "hours"]) { score -= 90 }
 
-        if let hours = hoursUntilReset(for: limit) {
+        if let seconds = limit.windowSeconds {
+            score += seconds > Self.shortWindowHours * 3600 ? 200 : -200
+        } else if let hours = hoursUntilResetIfUnstated(for: limit) {
             if hours >= 24, hours <= 240 {
                 score += 120
             } else if hours > 0, hours < 16 {
@@ -375,7 +410,9 @@ actor CodexUsagePollingService {
         if codeReviewScore(limit) >= 120 { score -= 200 }
         if containsAny(in: normalized, keywords: ["7d", "7_day", "seven_day", "weekly", "week"]) { score -= 80 }
 
-        if let hours = hoursUntilReset(for: limit) {
+        if let seconds = limit.windowSeconds {
+            score += seconds <= Self.shortWindowHours * 3600 ? 160 : -160
+        } else if let hours = hoursUntilResetIfUnstated(for: limit) {
             if hours > 0, hours <= 12 {
                 score += 100
             } else if hours > 12, hours <= 36 {
@@ -400,7 +437,9 @@ actor CodexUsagePollingService {
         if codeReviewScore(limit) >= 120 { score -= 200 }
         if containsAny(in: normalized, keywords: ["5h", "5_hour", "5hr", "hourly", "hour"]) { score -= 80 }
 
-        if let hours = hoursUntilReset(for: limit) {
+        if let seconds = limit.windowSeconds {
+            score += seconds > Self.shortWindowHours * 3600 ? 160 : -160
+        } else if let hours = hoursUntilResetIfUnstated(for: limit) {
             if hours >= 24, hours <= 240 {
                 score += 100
             } else if hours > 0, hours < 16 {
@@ -427,15 +466,35 @@ actor CodexUsagePollingService {
         }
     }
 
+    /// Where the boundary between a short and a multi-day window sits, in hours.
+    private static let shortWindowHours: Double = 12
+
     private func isPlausibleFiveHourWindow(_ limit: OpenAIUsageLimit) -> Bool {
+        // The API's own window length settles it. Time until reset is a proxy that fails in the
+        // last hours of a weekly window, when it is indistinguishable from a five-hour one —
+        // which is how a 7-day limit could be re-identified as the 5-hour one and flip back
+        // after reset.
+        if let seconds = limit.windowSeconds {
+            return seconds <= Self.shortWindowHours * 3600
+        }
         guard let hours = hoursUntilReset(for: limit) else { return true }
         // Allow a small clock skew around reset, but never call a multi-day limit "5-hour".
-        return hours >= -0.25 && hours <= 12
+        return hours >= -0.25 && hours <= Self.shortWindowHours
     }
 
     private func isPlausibleWeeklyWindow(_ limit: OpenAIUsageLimit) -> Bool {
+        if let seconds = limit.windowSeconds {
+            return seconds > Self.shortWindowHours * 3600 && seconds <= 240 * 3600
+        }
         guard let hours = hoursUntilReset(for: limit) else { return true }
-        return hours >= 12 && hours <= 240
+        return hours >= Self.shortWindowHours && hours <= 240
+    }
+
+    /// The window-length evidence a scorer should use, or `nil` when the API stated the length
+    /// and the caller should not fall back to the reset clock at all.
+    private func hoursUntilResetIfUnstated(for limit: OpenAIUsageLimit) -> Double? {
+        guard limit.windowSeconds == nil else { return nil }
+        return hoursUntilReset(for: limit)
     }
 
     private func normalizedName(of limit: OpenAIUsageLimit) -> String {
@@ -505,7 +564,19 @@ actor CodexUsagePollingService {
             return String(localized: "Code Review")
         }
 
+        return Self.presentable(raw)
+    }
+
+    /// A name the API never capitalised is a raw identifier — `chatpass`, taken from the JSON
+    /// path — and belongs on screen as a word, not as a key. A name that already carries
+    /// capitals is the backend's own formatting and is left exactly as it arrived.
+    private static func presentable(_ raw: String) -> String {
+        guard raw.allSatisfy({ !$0.isUppercase }) else { return raw }
         return raw
+            .replacingOccurrences(of: "_", with: " ")
+            .split(separator: " ")
+            .map { $0.prefix(1).uppercased() + $0.dropFirst() }
+            .joined(separator: " ")
     }
 
     private func determinePlanTier(from planLabel: String?) -> CodexPlanTier {

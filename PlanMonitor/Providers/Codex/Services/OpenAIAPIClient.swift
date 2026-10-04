@@ -260,7 +260,16 @@ actor OpenAIAPIClient {
         }
 
         let billing = snapshots.map(\.billing).first { !$0.isEmpty } ?? .empty
-        return OpenAIUsageSnapshot(planLabel: planLabel, limits: mergedLimits, billing: billing)
+        // Every scalar the merge carries has to be named here, or it is silently dropped: the
+        // usage payload is one of several candidate endpoints, and only the merged result is
+        // returned to the caller.
+        let resetCredits = snapshots.compactMap(\.resetCreditsAvailable).first
+        return OpenAIUsageSnapshot(
+            planLabel: planLabel,
+            limits: mergedLimits,
+            billing: billing,
+            resetCreditsAvailable: resetCredits
+        )
     }
 
     private struct UsageEndpointCandidate {
@@ -476,6 +485,8 @@ nonisolated struct OpenAIUsageSnapshot: Sendable {
     let limits: [OpenAIUsageLimit]
     /// Money-side fields the usage endpoint reports alongside the windows.
     var billing: OpenAIBillingSnapshot = .empty
+    /// `rate_limit_reset_credits.available_count` — how many limit resets the account holds.
+    var resetCreditsAvailable: Int?
 }
 
 /// `credits` and `spend_control` from the usage payload. Amounts are account currency units
@@ -521,6 +532,15 @@ nonisolated struct OpenAIUsageLimit: Sendable, Hashable {
     let name: String
     let utilization: Double
     let resetsAt: Date?
+    /// `limit_window_seconds` — how long the window is, stated by the API. Time *until reset* is
+    /// only a proxy for this and goes wrong near a reset: a weekly limit with four hours left
+    /// looks exactly like a five-hour one. Prefer this whenever it is present.
+    var windowSeconds: Double?
+    /// Found outside the containers that hold Codex's own rate limits — `chatpass.windows`, for
+    /// one, which is ChatGPT's quota and became two gauges labelled "windows" when OpenAI added
+    /// it. Kept rather than dropped so Settings can reveal it, but never shown by default: the
+    /// parser recognises a usage *shape*, which is not the same as knowing what it counts.
+    var isHidden: Bool = false
 }
 
 nonisolated private enum OpenAIUsageParser {
@@ -530,8 +550,18 @@ nonisolated private enum OpenAIUsageParser {
         return OpenAIUsageSnapshot(
             planLabel: collector.planLabel,
             limits: collector.normalizedLimits(),
-            billing: OpenAIBillingSnapshot.parse(json)
+            billing: OpenAIBillingSnapshot.parse(json),
+            resetCreditsAvailable: resetCreditsAvailable(in: json)
         )
+    }
+
+    /// `rate_limit_reset_credits.available_count`. The sibling `applicable_available_count` is
+    /// how many apply *right now* — zero whenever no limit is reached — so it is not what the
+    /// user is asking about when they want to know what they hold.
+    static func resetCreditsAvailable(in json: Any) -> Int? {
+        guard let object = json as? [String: Any],
+              let credits = object["rate_limit_reset_credits"] as? [String: Any] else { return nil }
+        return (credits["available_count"] as? NSNumber)?.intValue
     }
 
     private struct Collector {
@@ -626,7 +656,39 @@ nonisolated private enum OpenAIUsageParser {
             let resetDate = extractResetDate(from: dictionary)
             let name = extractName(from: dictionary, path: path)
 
-            return CandidateLimit(name: name, utilization: clampedUtilization, resetsAt: resetDate)
+            return CandidateLimit(
+                name: name,
+                utilization: clampedUtilization,
+                resetsAt: resetDate,
+                windowSeconds: extractWindowSeconds(from: dictionary),
+                isHidden: !Self.isRecognisedContainer(path)
+            )
+        }
+
+        /// The window's length. Named keys only, in order: a value like `604800` must never be
+        /// confused with a date, and `reset_after_seconds` is time *remaining*, not the window.
+        private func extractWindowSeconds(from dictionary: [String: Any]) -> Double? {
+            for key in ["limit_window_seconds", "window_seconds", "window_duration_seconds"] {
+                if let seconds = OpenAIUsageParser.number(from: dictionary[key]), seconds > 0 {
+                    return seconds
+                }
+            }
+            return nil
+        }
+
+        /// The containers that hold Codex's own rate limits. An allowlist rather than a list of
+        /// known strangers: a limit OpenAI adds under `rate_limit` is Codex's and should appear,
+        /// while anything in a subtree the app has never heard of should not — the walker only
+        /// recognises the *shape* of a usage counter, never what it measures.
+        private static let recognisedContainers: Set<String> = [
+            "rate_limit",
+            "additional_rate_limits",
+            "code_review_rate_limit"
+        ]
+
+        private static func isRecognisedContainer(_ path: [String]) -> Bool {
+            guard let root = path.first else { return false }
+            return recognisedContainers.contains(root.lowercased())
         }
 
         private func isLikelyUsageDictionary(_ dictionary: [String: Any], path: [String]) -> Bool {
@@ -693,20 +755,42 @@ nonisolated private enum OpenAIUsageParser {
                 }
             }
 
-            let meaningful = path.reversed().first { segment in
-                !segment.hasPrefix("[")
+            let segments = path.filter { !$0.hasPrefix("[") }
+            // Innermost for a recognised container: `rate_limit/primary_window` is named by the
+            // window, and `mapLimitsToSlots` matches those names. Outermost otherwise, because
+            // that is where the meaning sits — `chatpass/windows/[0]` is a chatpass window, and
+            // "windows" alone says nothing. A generic innermost segment is worth skipping even
+            // for a recognised container.
+            guard let outermost = segments.first else { return "usage" }
+            if Self.isRecognisedContainer(path) {
+                let innermost = segments.reversed().first { !Self.genericSegments.contains($0.lowercased()) }
+                return innermost ?? outermost
             }
-            return meaningful ?? "usage"
+            return outermost
         }
 
+        private static let genericSegments: Set<String> = ["windows", "limits", "items", "entries", "buckets"]
+
+        /// Named keys first, then a scan — and never dictionary order, which Swift does not
+        /// define: three keys here match "reset" or "window", so which one won was luck that
+        /// could differ between polls. `limit_window_seconds` is excluded outright; it is a
+        /// duration, and only `parseDate`'s lower bound has been keeping it out.
         private func extractResetDate(from dictionary: [String: Any]) -> Date? {
-            for (key, value) in dictionary {
+            for key in ["reset_at", "resets_at", "reset_time", "expires_at", "reset"] {
+                if let value = dictionary[key], let date = OpenAIUsageParser.parseDate(value) {
+                    return date
+                }
+            }
+
+            let durationKeys = ["limit_window_seconds", "window_seconds", "window_duration_seconds",
+                                "reset_after_seconds", "expires_in_seconds"]
+            for key in dictionary.keys.sorted() {
                 let lowercased = key.lowercased()
-                guard lowercased.contains("reset") || lowercased.contains("expires") || lowercased.contains("window") else {
+                guard lowercased.contains("reset") || lowercased.contains("expires") || lowercased.contains("window"),
+                      !durationKeys.contains(lowercased) else {
                     continue
                 }
-
-                if let date = OpenAIUsageParser.parseDate(value) {
+                if let date = OpenAIUsageParser.parseDate(dictionary[key]!) {
                     return date
                 }
             }
@@ -720,14 +804,18 @@ nonisolated private enum OpenAIUsageParser {
             for limit in limits {
                 let bucketedUtilization = Int(limit.utilization.rounded())
                 let resetBucket = limit.resetsAt.map { Int($0.timeIntervalSince1970 / 60) } ?? -1
-                let key = "\(limit.name.lowercased())|\(bucketedUtilization)|\(resetBucket)"
+                // `isHidden` is part of the key so a stranger can never dedupe away an identical
+                // Codex limit — dictionary iteration order decides which is seen first.
+                let key = "\(limit.name.lowercased())|\(bucketedUtilization)|\(resetBucket)|\(limit.isHidden)"
                 guard seen.insert(key).inserted else { continue }
 
                 normalized.append(
                     OpenAIUsageLimit(
                         name: limit.name,
                         utilization: limit.utilization,
-                        resetsAt: limit.resetsAt
+                        resetsAt: limit.resetsAt,
+                        windowSeconds: limit.windowSeconds,
+                        isHidden: limit.isHidden
                     )
                 )
             }
@@ -746,6 +834,8 @@ nonisolated private enum OpenAIUsageParser {
             let name: String
             let utilization: Double
             let resetsAt: Date?
+            let windowSeconds: Double?
+            let isHidden: Bool
         }
     }
 

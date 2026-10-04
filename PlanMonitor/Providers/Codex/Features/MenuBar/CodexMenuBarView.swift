@@ -250,6 +250,13 @@ struct CodexMenuBarView: View {
                         }
                     }
                 }
+
+                // Not a window, so it closes the list as a line of text rather than a gauge.
+                if let resets = viewModel.usageData.resetCreditsAvailable, resets > 0 {
+                    Text(String(localized: "Limit resets available: \(resets)"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .padding()

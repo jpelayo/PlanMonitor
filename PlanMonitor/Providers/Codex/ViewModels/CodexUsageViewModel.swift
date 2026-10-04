@@ -38,10 +38,23 @@ final class CodexUsageViewModel {
 
     var showRemainingPercent: Bool = true
 
+    /// Reveals limits found outside Codex's own rate-limit containers — ChatGPT's `chatpass`
+    /// windows, for one. Off by default: the parser recognises the shape of a usage counter,
+    /// not what it counts, so a stranger gets a gauge only when the user asks for it.
+    var showHiddenGauges: Bool = false {
+        didSet {
+            guard showHiddenGauges != oldValue else { return }
+            defaults.set(showHiddenGauges, forKey: "codex.showHiddenGauges")
+            let show = showHiddenGauges
+            Task { await pollingService.setShowHiddenGauges(show) }
+        }
+    }
+
     let sessionPreferences: SessionTrackingPreferences
     let sessionTracker: SessionTracker
     let menuBarText: MenuBarTextPreferences
 
+    private let defaults: UserDefaults
     private let apiClient: OpenAIAPIClient
     private let authService: CodexAuthenticationService
     private let pollingService: CodexUsagePollingService
@@ -59,6 +72,7 @@ final class CodexUsageViewModel {
         defaults: UserDefaults = .standard,
         apiClient: OpenAIAPIClient = OpenAIAPIClient()
     ) {
+        self.defaults = defaults
         self.apiClient = apiClient
         self.authService = CodexAuthenticationService(
             credentialStore: CodexCredentialStore(secureStore: secureStore),
@@ -73,8 +87,15 @@ final class CodexUsageViewModel {
         self.sessionTracker = SessionTracker(namespace: "codex", defaults: defaults)
         self.menuBarText = MenuBarTextPreferences(namespace: "codex", defaults: defaults)
 
+        // Direct assignment in `init` does not run `didSet`, so the restored value is not
+        // written back; the service is told separately.
+        showHiddenGauges = defaults.bool(forKey: "codex.showHiddenGauges")
+
         restorePersistedSnapshot()
         setupPollingCallbacks()
+
+        let show = showHiddenGauges
+        Task { [pollingService] in await pollingService.setShowHiddenGauges(show) }
     }
 
     private func setupPollingCallbacks() {
@@ -520,7 +541,8 @@ extension CodexUsageViewModel: DemoCapable {
             overageUsedCredits: 1359,       // $13.59
             overageCurrency: "USD",
             overageEnabled: true,
-            overageOutOfCredits: false
+            overageOutOfCredits: false,
+            resetCreditsAvailable: 4
         )
 
         lastUpdated = now

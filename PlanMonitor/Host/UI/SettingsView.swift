@@ -165,6 +165,13 @@ struct SettingsView: View {
         MenuBarRingControl(preferences: codexViewModel.menuBarText)
         MenuBarUsageDisplayControl(preferences: codexViewModel.menuBarText)
         MenuBarTextControls(preferences: codexViewModel.menuBarText)
+        VStack(alignment: .leading, spacing: 2) {
+            Toggle(String(localized: "Show hidden gauges"), isOn: $codexViewModel.showHiddenGauges)
+            Text(String(localized: "Shows limits OpenAI reports outside Codex's own, such as ChatGPT's. What they count is not documented."))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
         providerAccount(
             email: codexViewModel.authState.email,
             plan: codexViewModel.usageData.planTier.displayName,

@@ -29,6 +29,9 @@ struct CodexUsageData: Codable, Sendable, Equatable {
     let overageCurrency: String?
     let overageEnabled: Bool?
     let overageOutOfCredits: Bool?
+    /// Limit resets the account holds (`rate_limit_reset_credits.available_count`). Not a window,
+    /// so it is a line of text under the gauges rather than one of them.
+    let resetCreditsAvailable: Int?
 
     var hasUsageLimits: Bool {
         fiveHourUtilization != nil
@@ -184,6 +187,7 @@ struct CodexUsageData: Codable, Sendable, Equatable {
         overageUsedCredits: nil,
         overageCurrency: nil,
         overageEnabled: nil,
-        overageOutOfCredits: nil
+        overageOutOfCredits: nil,
+        resetCreditsAvailable: nil
     )
 }

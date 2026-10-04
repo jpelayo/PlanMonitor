@@ -262,6 +262,13 @@
 "Confirm letters match and press Continue" = "Comprueba que las letras coinciden y pulsa Continuar";
 "Only System Settings can turn this back on. Open Login Items and allow PlanMonitor." = "Solo Ajustes del Sistema puede volver a activarlo. Abre Elementos de inicio y permite PlanMonitor.";
 
+/* Medidores ocultos de Codex */
+"Show hidden gauges" = "Mostrar medidores ocultos";
+"Shows limits OpenAI reports outside Codex's own, such as ChatGPT's. What they count is not documented." = "Muestra los límites que OpenAI informa fuera de los propios de Codex, como los de ChatGPT. No está documentado qué miden.";
+
+/* Créditos de restablecimiento de Codex */
+"Limit resets available: %lld" = "Restablecimientos disponibles: %lld";
+
 /* Visibilidad en la barra de menús */
 "Menu bar items" = "Elementos de la barra de menús";
 "Reset positions" = "Restablecer posiciones";
