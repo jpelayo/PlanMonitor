@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import PlanTracker
+@testable import PlanMonitor
 
 /// Replays canned responses and records outbound requests.
 ///

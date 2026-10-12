@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import PlanTracker
+@testable import PlanMonitor
 
 private func credit(purchased: Double, used: Double) -> AccountCredit {
     AccountCredit(totalPurchased: Decimal(purchased), totalUsed: Decimal(used))

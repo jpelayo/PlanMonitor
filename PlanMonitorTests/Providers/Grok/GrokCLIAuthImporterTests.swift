@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import PlanTracker
+@testable import PlanMonitor
 
 struct GrokCLIAuthImporterTests {
     @Test func importsValidOIDCRecordAmongOthers() throws {

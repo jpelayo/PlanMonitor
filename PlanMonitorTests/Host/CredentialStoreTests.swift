@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import PlanTracker
+@testable import PlanMonitor
 
 /// Exercises the provider credential stores against `InMemorySecureStore`: envelope
 /// shape on disk, every legacy shape an older build could have left behind, locked-keychain
@@ -96,7 +96,7 @@ struct CredentialStoreTests {
         #expect(loaded?.cookieHeader == "sessionKey=sk-ant-sid01-abc")
         #expect(loaded?.email == nil)
         let current = try await Self.strictCurrent(ClaudeSession.self, account: ClaudeCredentialStore.account, provider: .claude, kind: "session", in: memory)
-        #expect(current == loaded)
+        #expect(Self.sameStoredCredential(current, loaded))
     }
 
     @Test func rawFullClaudeHeaderUpgradesUnchanged() async throws {
@@ -108,7 +108,7 @@ struct CredentialStoreTests {
 
         #expect(loaded?.cookieHeader == "sessionKey=sk-ant-sid01-abc; lastActiveOrg=org_1")
         let current = try await Self.strictCurrent(ClaudeSession.self, account: ClaudeCredentialStore.account, provider: .claude, kind: "session", in: memory)
-        #expect(current == loaded)
+        #expect(Self.sameStoredCredential(current, loaded))
     }
 
     @Test func rawCodexCookieHeaderUpgrades() async throws {
@@ -120,7 +120,7 @@ struct CredentialStoreTests {
 
         #expect(loaded?.cookieHeader == "__Secure-next-auth.session-token=xyz; cf_clearance=1")
         let current = try await Self.strictCurrent(CodexSession.self, account: CodexCredentialStore.account, provider: .codex, kind: "session", in: memory)
-        #expect(current == loaded)
+        #expect(Self.sameStoredCredential(current, loaded))
     }
 
     @Test func bareJSONGrokSessionWithDefaultDatesUpgrades() async throws {
@@ -155,7 +155,7 @@ struct CredentialStoreTests {
         let accounts = await memory.accounts
         #expect(accounts == [GrokCredentialStore.sessionAccount])
         let current = try await Self.strictCurrent(GrokWebSession.self, account: GrokCredentialStore.sessionAccount, provider: .grok, kind: "session", in: memory)
-        #expect(current == loaded)
+        #expect(Self.sameStoredCredential(current, loaded))
     }
 
     @Test func bareJSONGrokCredentialsWithISODatesUpgrade() async throws {
@@ -200,7 +200,7 @@ struct CredentialStoreTests {
         #expect(loaded?.key == "sk-or-v1-legacy")
         #expect(loaded?.keyLabel == nil)
         let current = try await Self.strictCurrent(OpenRouterManagementKey.self, account: OpenRouterCredentialStore.account, provider: .openrouter, kind: "managementKey", in: memory)
-        #expect(current == loaded)
+        #expect(Self.sameStoredCredential(current, loaded))
     }
 
     @Test func legacyUpgradeRewritesWithDeviceOnlyAccessibility() async throws {
@@ -397,11 +397,11 @@ struct CredentialStoreTests {
     @Test func newWritesUseDeviceOnlyAccessibilityAndALabel() async throws {
         let memory = try await Self.seedAllProviders()
         let expectedLabels: [String: String] = [
-            ClaudeCredentialStore.account: "PlanTracker · Claude session",
-            CodexCredentialStore.account: "PlanTracker · Codex session",
-            GrokCredentialStore.sessionAccount: "PlanTracker · Grok session",
-            GrokCredentialStore.credentialsAccount: "PlanTracker · Grok oidc",
-            OpenRouterCredentialStore.account: "PlanTracker · OpenRouter managementKey"
+            ClaudeCredentialStore.account: "PlanMonitor · Claude session",
+            CodexCredentialStore.account: "PlanMonitor · Codex session",
+            GrokCredentialStore.sessionAccount: "PlanMonitor · Grok session",
+            GrokCredentialStore.credentialsAccount: "PlanMonitor · Grok oidc",
+            OpenRouterCredentialStore.account: "PlanMonitor · OpenRouter managementKey"
         ]
 
         for account in Self.allAccounts {
@@ -468,6 +468,26 @@ struct CredentialStoreTests {
 
     /// Reads the account with a store that knows no legacy shapes: `.current` proves the
     /// bytes are already an envelope and a second load needs no upgrade.
+    /// Whether two payloads are the same credential *as stored*.
+    ///
+    /// `load()` returns the payload it built in memory; the envelope it wrote on the way out went
+    /// through `CredentialCodec`, whose `.iso8601` strategy has no fractional seconds. A legacy
+    /// upgrade stamps a fresh `Date()`, so the in-memory copy and the re-read copy differ by under a
+    /// second and in nothing else — comparing the two with `==` asserts a precision the format
+    /// deliberately does not carry. Comparing their encoded forms asserts the invariant that
+    /// actually matters.
+    ///
+    /// Tests that seed a whole-second date compare with `==` instead, and should keep doing so.
+    private static func sameStoredCredential<Payload: VersionedCredentialPayload>(
+        _ lhs: Payload?,
+        _ rhs: Payload?
+    ) -> Bool {
+        guard let lhs, let rhs else { return lhs == nil && rhs == nil }
+        let encoder = CredentialCodec.encoder()
+        guard let left = try? encoder.encode(lhs), let right = try? encoder.encode(rhs) else { return false }
+        return left == right
+    }
+
     private static func strictCurrent<Payload: VersionedCredentialPayload>(
         _ type: Payload.Type,
         account: String,

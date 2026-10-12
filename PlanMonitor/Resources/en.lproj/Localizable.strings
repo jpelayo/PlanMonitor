@@ -278,3 +278,15 @@
 "Open Menu Bar settings" = "Open Menu Bar settings";
 "Open PlanMonitor settings" = "Open PlanMonitor settings";
 "Reset menu bar positions" = "Reset menu bar positions";
+
+/* Claude-API — menu bar text */
+"Promotional credit amount" = "Promotional credit amount";
+"Promotional credit percent" = "Promotional credit percent";
+"Spend amount" = "Spend amount";
+"Spend percent" = "Spend percent";
+"Prepaid credit amount" = "Prepaid credit amount";
+"To be invoiced amount" = "To be invoiced amount";
+"Promotional credit and spend amounts" = "Promotional credit and spend amounts";
+"Promotional credit and spend percents" = "Promotional credit and spend percents";
+"Promotional and prepaid credit amounts" = "Promotional and prepaid credit amounts";
+"Spend and to be invoiced amounts" = "Spend and to be invoiced amounts";

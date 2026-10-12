@@ -1,10 +1,17 @@
 import Foundation
 import Testing
-@testable import PlanTracker
+@testable import PlanMonitor
 
 struct MenuBarUsageRingTests {
-    /// The ring's twelve dashes, as a fraction — the only values `fill` may return.
-    private let step = 1.0 / 12.0
+    /// The nth of the ring's twelve dashes, as a fraction — the only values `fill` may return.
+    ///
+    /// Divides last, exactly as `quantise` does (`(fraction * 12).rounded() / 12`). The earlier
+    /// `n * (1.0 / 12.0)` form divided first, which agrees bit-for-bit only when `n / 12` is a
+    /// dyadic fraction — true for 3, 6 and 9 (0.25, 0.5, 0.75) and false for 5, where it left the
+    /// last bit adrift and the comparison asserted an artefact of association order.
+    private func dash(_ n: Int) -> Double {
+        Double(n) / Double(MenuBarUsageRing.steps)
+    }
 
     @Test func offLeavesTheRingWhole() {
         #expect(MenuBarUsageRing.fill(source: .off, sense: .remaining, fiveHour: 42, week: 67.5) == nil)
@@ -20,16 +27,16 @@ struct MenuBarUsageRingTests {
         let fallback = MenuBarUsageRing.fill(source: .fiveHour, sense: .used, fiveHour: nil, week: 50)
         let direct = MenuBarUsageRing.fill(source: .week, sense: .used, fiveHour: nil, week: 50)
         #expect(fallback == direct)
-        #expect(fallback == 6 * step)
+        #expect(fallback == dash(6))
     }
 
     @Test func weeklyFallsBackToFiveHour() {
-        #expect(MenuBarUsageRing.fill(source: .week, sense: .used, fiveHour: 25, week: nil) == 3 * step)
+        #expect(MenuBarUsageRing.fill(source: .week, sense: .used, fiveHour: 25, week: nil) == dash(3))
     }
 
     @Test func eachSourcePicksItsOwnWindow() {
-        #expect(MenuBarUsageRing.fill(source: .fiveHour, sense: .used, fiveHour: 25, week: 75) == 3 * step)
-        #expect(MenuBarUsageRing.fill(source: .week, sense: .used, fiveHour: 25, week: 75) == 9 * step)
+        #expect(MenuBarUsageRing.fill(source: .fiveHour, sense: .used, fiveHour: 25, week: 75) == dash(3))
+        #expect(MenuBarUsageRing.fill(source: .week, sense: .used, fiveHour: 25, week: 75) == dash(9))
     }
 
     /// Inputs are used percentages on 0–100; the symbol wants 0–1.
@@ -41,8 +48,8 @@ struct MenuBarUsageRingTests {
     @Test func remainingIsTheComplementOfUsed() {
         let used = MenuBarUsageRing.fill(source: .week, sense: .used, fiveHour: nil, week: 25)
         let remaining = MenuBarUsageRing.fill(source: .week, sense: .remaining, fiveHour: nil, week: 25)
-        #expect(used == 3 * step)
-        #expect(remaining == 9 * step)
+        #expect(used == dash(3))
+        #expect(remaining == dash(9))
     }
 
     /// An untouched quota under `remaining` is a full ring — the same picture as `off`, which is
@@ -63,7 +70,7 @@ struct MenuBarUsageRingTests {
         let a = MenuBarUsageRing.fill(source: .week, sense: .used, fiveHour: nil, week: 42)
         let b = MenuBarUsageRing.fill(source: .week, sense: .used, fiveHour: nil, week: 44)
         #expect(a == b)
-        #expect(a == 5 * step)
+        #expect(a == dash(5))
     }
 
     @Test func everyResultLandsOnADash() {

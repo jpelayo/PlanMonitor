@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import PlanTracker
+@testable import PlanMonitor
 
 /// The formatting rules here predate the helper — every provider truncated and every provider
 /// printed `NN%`. Drift in truncation or clamping would silently change the digits for every

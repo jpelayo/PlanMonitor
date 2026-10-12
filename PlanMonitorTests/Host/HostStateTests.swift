@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 import Testing
-@testable import PlanTracker
+@testable import PlanMonitor
 
 @MainActor
 struct HostStateTests {

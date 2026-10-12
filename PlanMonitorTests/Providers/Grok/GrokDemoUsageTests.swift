@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import PlanTracker
+@testable import PlanMonitor
 
 /// Ported from the standalone Grok app's smoke test: the demo snapshot must be complete
 /// enough to drive the whole menu.

@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import PlanTracker
+@testable import PlanMonitor
 
 /// The sanitiser runs before any status item exists, on every launch. It must remove exactly the
 /// bookkeeping that keeps an item off the bar — and nothing the user arranged themselves.

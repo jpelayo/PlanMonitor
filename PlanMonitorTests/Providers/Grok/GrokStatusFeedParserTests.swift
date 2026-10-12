@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import PlanTracker
+@testable import PlanMonitor
 
 /// Fixtures mirror the live `https://status.x.ai/feed.xml` shape captured 2026-09-03: one
 /// `<item>` per incident across every product, two `<category>` values per item.

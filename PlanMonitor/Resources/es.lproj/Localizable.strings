@@ -278,3 +278,15 @@
 "Open Menu Bar settings" = "Abrir ajustes de la barra de menús";
 "Open PlanMonitor settings" = "Abrir ajustes de PlanMonitor";
 "Reset menu bar positions" = "Restablecer posiciones en la barra";
+
+/* Claude-API — texto de la barra de menús */
+"Promotional credit amount" = "Importe del crédito promocional";
+"Promotional credit percent" = "Porcentaje del crédito promocional";
+"Spend amount" = "Importe del gasto";
+"Spend percent" = "Porcentaje del gasto";
+"Prepaid credit amount" = "Importe del crédito prepagado";
+"To be invoiced amount" = "Importe pendiente de facturar";
+"Promotional credit and spend amounts" = "Importes del crédito promocional y del gasto";
+"Promotional credit and spend percents" = "Porcentajes del crédito promocional y del gasto";
+"Promotional and prepaid credit amounts" = "Importes del crédito promocional y del prepagado";
+"Spend and to be invoiced amounts" = "Importes del gasto y de lo pendiente de facturar";

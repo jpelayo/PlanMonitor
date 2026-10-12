@@ -14,7 +14,11 @@ nonisolated enum DemoGrokUsage {
             prepaidBalance: 12.5,
             onDemandCap: 25,
             onDemandUsed: 0,
-            topUpMethod: "TOP_UP_METHOD_SAVED_PAYMENT_METHOD",
+            // Announces itself as automatic, so demo mode actually renders the auto-top-up row
+            // (`GrokMenuBarView`) that App Review sees. A saved payment method is only a way
+            // credits *can* be bought, and `isAutoTopUpEnabled` deliberately reads that as off —
+            // which is why the real captured value lives in the parser's fixture, not here.
+            topUpMethod: "TOP_UP_METHOD_AUTOMATIC",
             planDisplayName: "SuperGrok",
             isUnifiedBilling: true,
             monthlyUsed: nil,
