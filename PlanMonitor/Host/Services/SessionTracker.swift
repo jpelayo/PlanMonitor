@@ -48,7 +48,7 @@ nonisolated struct ActivitySignal: Sendable, Equatable {
 /// - movement in any signal opens or extends a segment;
 /// - two consecutive quiet ticks close the segment and add its wall time.
 ///
-/// All state is namespaced per provider so four trackers never share a key.
+/// All state is namespaced per provider so no two trackers ever share a key.
 @MainActor
 final class SessionTracker {
     private let defaults: UserDefaults

@@ -28,6 +28,11 @@ final class OpenRouterBudgetViewModel {
         didSet { defaults.set(menuBarDisplay.rawValue, forKey: "openrouter.menuBarDisplay") }
     }
 
+    /// How amounts carry their currency, in the menu bar and the dropdown alike.
+    var currencyStyle: CurrencyStyle = .default {
+        didSet { defaults.set(currencyStyle.rawValue, forKey: "openrouter.currencyStyle") }
+    }
+
     var showDisabledKeys: Bool = false {
         didSet { defaults.set(showDisabledKeys, forKey: "openrouter.showDisabledKeys") }
     }
@@ -370,6 +375,10 @@ final class OpenRouterBudgetViewModel {
         if let raw = defaults.string(forKey: "openrouter.menuBarDisplay"),
            let display = MenuBarDisplay(rawValue: raw) {
             menuBarDisplay = display
+        }
+        if let raw = defaults.string(forKey: "openrouter.currencyStyle"),
+           let style = CurrencyStyle(rawValue: raw) {
+            currencyStyle = style
         }
         showDisabledKeys = defaults.bool(forKey: "openrouter.showDisabledKeys")
         showRecentModels = defaults.bool(forKey: "openrouter.showRecentModels")

@@ -392,6 +392,22 @@ struct CredentialStoreTests {
         }
     }
 
+    /// Claude-API reads the same company's console with its own session. Signing out of it must
+    /// leave Claude's `sessionKey` — and everyone else — exactly as it was.
+    @Test func claudeAPISignOutLeavesOtherProvidersUntouched() async throws {
+        let memory = try await Self.seedAllProviders()
+        let before = await Self.rawSnapshot(memory)
+
+        try await ClaudePlatformCredentialStore(secureStore: memory).delete()
+
+        let accounts = await memory.accounts
+        #expect(!accounts.contains(ClaudePlatformCredentialStore.account))
+        let after = await Self.rawSnapshot(memory)
+        for account in Self.allAccounts where account != ClaudePlatformCredentialStore.account {
+            #expect(after[account] == before[account], "\(account) changed")
+        }
+    }
+
     // MARK: - Accessibility
 
     @Test func newWritesUseDeviceOnlyAccessibilityAndALabel() async throws {
@@ -401,7 +417,8 @@ struct CredentialStoreTests {
             CodexCredentialStore.account: "PlanMonitor · Codex session",
             GrokCredentialStore.sessionAccount: "PlanMonitor · Grok session",
             GrokCredentialStore.credentialsAccount: "PlanMonitor · Grok oidc",
-            OpenRouterCredentialStore.account: "PlanMonitor · OpenRouter managementKey"
+            OpenRouterCredentialStore.account: "PlanMonitor · OpenRouter managementKey",
+            ClaudePlatformCredentialStore.account: "PlanMonitor · Claude-API session"
         ]
 
         for account in Self.allAccounts {
@@ -418,7 +435,8 @@ struct CredentialStoreTests {
         CodexCredentialStore.account,
         GrokCredentialStore.sessionAccount,
         GrokCredentialStore.credentialsAccount,
-        OpenRouterCredentialStore.account
+        OpenRouterCredentialStore.account,
+        ClaudePlatformCredentialStore.account
     ]
 
     private static func seedAllProviders() async throws -> InMemorySecureStore {
@@ -432,6 +450,8 @@ struct CredentialStoreTests {
         try await grok.save(grokCredentials())
         try await OpenRouterCredentialStore(secureStore: memory)
             .save(OpenRouterManagementKey(key: "sk-or-v1-openrouter", validatedAt: fixedDate))
+        try await ClaudePlatformCredentialStore(secureStore: memory)
+            .save(ClaudePlatformSession(cookieHeader: "sessionKey=console", capturedAt: fixedDate))
         let accounts = await memory.accounts
         #expect(accounts == allAccounts.sorted())
         return memory

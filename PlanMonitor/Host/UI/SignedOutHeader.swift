@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// The top of every signed-out dropdown: the provider's menu-bar glyph, a title, one short
-/// line, and the primary action. Same geometry for all four; the line wraps instead of
+/// line, and the primary action. Same geometry for every provider; the line wraps instead of
 /// truncating.
 struct SignedOutHeader: View {
     let symbolName: String

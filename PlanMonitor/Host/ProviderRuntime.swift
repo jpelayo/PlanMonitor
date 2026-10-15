@@ -38,3 +38,10 @@ extension OpenRouterBudgetViewModel: ProviderRuntime {
     func enable() async { await resume() }
     func disable() async { await suspend() }
 }
+
+extension ClaudePlatformViewModel: ProviderRuntime {
+    var providerID: ProviderID { .claudeapi }
+    func enable() async { await resume() }
+    func disable() async { await suspend() }
+    func refresh() async { await refreshUsage() }
+}

@@ -112,8 +112,8 @@ struct OpenRouterMenuBarView: View {
             sectionTitle("Credit")
             VStack(alignment: .leading, spacing: 3) {
                 Text(credit.isNegative
-                     ? String(localized: "\(Money.format(credit.remaining)) overdrawn")
-                     : String(localized: "\(Money.format(credit.remaining)) remaining"))
+                     ? String(localized: "\(money(credit.remaining)) overdrawn")
+                     : String(localized: "\(money(credit.remaining)) remaining"))
                     .font(.title2.monospacedDigit())
                     .foregroundStyle(credit.isNegative ? Color.red : .primary)
                 if credit.isNegative {
@@ -189,7 +189,7 @@ struct OpenRouterMenuBarView: View {
         var rows: [SpendRow] = []
         func add(_ label: String, _ amount: Decimal?, emphasised: Bool = false) {
             guard let amount else { return }
-            rows.append(SpendRow(label: label, value: Money.format(amount), emphasised: emphasised))
+            rows.append(SpendRow(label: label, value: money(amount), emphasised: emphasised))
         }
         add(String(localized: "Last 15 minutes"), snapshot.spentLast15Minutes)
         add(String(localized: "Last hour"), snapshot.spentLastHour)
@@ -236,7 +236,7 @@ struct OpenRouterMenuBarView: View {
             Text(String(localized: "\(ElapsedFormatter.string(since: model.lastCalledAt)) ago"))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.tertiary)
-            Text(Money.format(model.spend))
+            Text(money(model.spend))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .frame(minWidth: 52, alignment: .trailing)
@@ -244,7 +244,7 @@ struct OpenRouterMenuBarView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(model.model)
-        .accessibilityValue(String(localized: "\(Money.format(model.spend)), last used \(ElapsedFormatter.string(since: model.lastCalledAt)) ago"))
+        .accessibilityValue(String(localized: "\(money(model.spend)), last used \(ElapsedFormatter.string(since: model.lastCalledAt)) ago"))
     }
 
     @ViewBuilder
@@ -260,7 +260,7 @@ struct OpenRouterMenuBarView: View {
                     fraction: budget.usedFraction,
                     title: budget.name,
                     detail: keyDetail(budget),
-                    valueText: "\(Money.format(budget.spent)) / \(Money.format(budget.limit))",
+                    valueText: "\(money(budget.spent)) / \(money(budget.limit))",
                     dimmed: budget.disabled
                 )
             }
@@ -268,7 +268,7 @@ struct OpenRouterMenuBarView: View {
                 HStack {
                     Text(key.name).font(.caption).lineLimit(1).truncationMode(.middle)
                     Spacer(minLength: 8)
-                    Text(String(localized: "\(Money.format(key.spentInWindow)) spent"))
+                    Text(String(localized: "\(money(key.spentInWindow)) spent"))
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
@@ -315,7 +315,7 @@ struct OpenRouterMenuBarView: View {
                 HStack {
                     Text(guardrail.name).font(.subheadline).lineLimit(1)
                     Spacer(minLength: 8)
-                    Text(Money.format(guardrail.limit))
+                    Text(money(guardrail.limit))
                         .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 }
                 Text(String(localized: "No keys assigned"))
@@ -327,7 +327,7 @@ struct OpenRouterMenuBarView: View {
                 fraction: member.usedFraction,
                 title: guardrail.name,
                 detail: guardrailDetail(guardrail, member: member),
-                valueText: "\(Money.format(member.spent)) / \(Money.format(guardrail.limit))"
+                valueText: "\(money(member.spent)) / \(money(guardrail.limit))"
             )
         } else {
             VStack(alignment: .leading, spacing: 5) {
@@ -337,7 +337,7 @@ struct OpenRouterMenuBarView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                     Spacer(minLength: 8)
-                    Text(String(localized: "\(Money.format(guardrail.limit)) each"))
+                    Text(String(localized: "\(money(guardrail.limit)) each"))
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
@@ -351,7 +351,7 @@ struct OpenRouterMenuBarView: View {
                         detail: member.supersededByKeyLimit
                             ? String(localized: "key's own limit binds first")
                             : nil,
-                        valueText: "\(Money.format(member.spent)) / \(Money.format(member.limit))"
+                        valueText: "\(money(member.spent)) / \(money(member.limit))"
                     )
                     .padding(.leading, 10)
                 }
@@ -491,6 +491,11 @@ struct OpenRouterMenuBarView: View {
         }
         .padding(8)
         .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+    }
+
+    /// Every amount in the dropdown, written with the user's currency style.
+    private func money(_ amount: Decimal) -> String {
+        Money.format(amount, style: viewModel.currencyStyle)
     }
 }
 

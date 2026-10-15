@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Bindable var codexViewModel: CodexUsageViewModel
     @Bindable var grokViewModel: GrokUsageViewModel
     @Bindable var openRouterViewModel: OpenRouterBudgetViewModel
+    @Bindable var claudeAPIViewModel: ClaudePlatformViewModel
     @Bindable var providers: EnabledProviders
     @Bindable var preferences: GlobalPreferences
     /// Forgets the saved menu bar positions and rebuilds the items at the default spot.
@@ -111,6 +112,7 @@ struct SettingsView: View {
                 case .codex: codexControls
                 case .grok: grokControls
                 case .openrouter: openRouterControls
+                case .claudeapi: claudePlatformControls
                 }
             } header: {
                 Text(enabledProviderList.count > 1 ? String(localized: "Providers") : selectedProvider.displayName)
@@ -129,7 +131,7 @@ struct SettingsView: View {
                     }
                 }
                 LabeledContent(String(localized: "About")) {
-                    Text(String(localized: "PlanMonitor is an independent tool for use with Claude, Codex, Grok, and OpenRouter. It is not affiliated with the vendors nor endorsed by them."))
+                    Text(String(localized: "PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Grok, and OpenRouter. It is not affiliated with the vendors nor endorsed by them."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.trailing)
@@ -226,6 +228,7 @@ struct SettingsView: View {
             }
         }
         .pickerStyle(.menu)
+        currencyStylePicker($openRouterViewModel.currencyStyle)
         VStack(alignment: .leading, spacing: 2) {
             Picker(String(localized: "Menu bar ring"), selection: $openRouterViewModel.ringSource) {
                 ForEach(OpenRouterRingSource.allCases, id: \.self) { source in
@@ -249,6 +252,60 @@ struct SettingsView: View {
             }
             .pickerStyle(.menu)
         }
+    }
+
+    /// The OpenRouter shape — money, its own display and ring pickers, no five-hour/weekly
+    /// `MenuBarUsageDisplayControl` or `MenuBarRingControl` — with a session to sign out of, so
+    /// the shared account rows rather than OpenRouter's key rows.
+    @ViewBuilder
+    private var claudePlatformControls: some View {
+        SessionTrackingControls(preferences: claudeAPIViewModel.sessionPreferences)
+        MenuBarTextControls(preferences: claudeAPIViewModel.menuBarText)
+        Picker(String(localized: "Menu bar shows"), selection: $claudeAPIViewModel.menuBarDisplay) {
+            ForEach(ClaudePlatformMenuBarDisplay.allCases, id: \.self) { display in
+                Text(display.displayName).tag(display)
+            }
+        }
+        .pickerStyle(.menu)
+        currencyStylePicker($claudeAPIViewModel.currencyStyle)
+        VStack(alignment: .leading, spacing: 2) {
+            Picker(String(localized: "Menu bar ring"), selection: $claudeAPIViewModel.ringSource) {
+                ForEach(ClaudePlatformRingSource.allCases, id: \.self) { source in
+                    Text(source.displayName).tag(source)
+                }
+            }
+            .pickerStyle(.menu)
+            if let caption = claudeAPIViewModel.ringSource.caption {
+                Text(caption)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        if let organization = claudeAPIViewModel.organizationName {
+            LabeledContent(String(localized: "Organization"), value: organization)
+        }
+        if let recharge = claudeAPIViewModel.snapshot.autoRecharge {
+            LabeledContent(
+                String(localized: "Auto-payment"),
+                value: recharge.isEnabled ? String(localized: "On") : String(localized: "Off")
+            )
+        }
+        providerAccount(
+            email: claudeAPIViewModel.authState.email,
+            plan: nil,
+            signInWindow: .loginClaudeAPI,
+            signOut: { await claudeAPIViewModel.logout() }
+        )
+    }
+
+    /// The two money providers' currency choice — one control, so both read the same.
+    private func currencyStylePicker(_ selection: Binding<CurrencyStyle>) -> some View {
+        Picker(String(localized: "Currency symbol"), selection: selection) {
+            ForEach(CurrencyStyle.allCases, id: \.self) { style in
+                Text(style.displayName).tag(style)
+            }
+        }
+        .pickerStyle(.menu)
     }
 
     @ViewBuilder

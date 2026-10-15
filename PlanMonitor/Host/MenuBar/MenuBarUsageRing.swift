@@ -35,7 +35,7 @@ nonisolated enum MenuBarUsageRing {
     }
 
     /// Snaps a 0–1 fraction to the nearest of the ring's twelve steps. Every ring goes through
-    /// this — OpenRouter's money gauges included — so all four re-render on the same boundaries.
+    /// this — the money providers' gauges included — so every ring re-renders on the same boundaries.
     static func quantise(_ fraction: Double) -> Double {
         (fraction * Double(steps)).rounded() / Double(steps)
     }

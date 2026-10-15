@@ -143,8 +143,10 @@ struct GrokMenuBarView: View {
         return (data.onDemandUsed ?? 0) > 0 && (data.onDemandCap ?? 0) > 0
     }
 
+    /// `$1234.56`. Platform rule: a dot whatever the locale, no thousands separator, two decimals.
     nonisolated private static func usd(_ amount: Double) -> String {
-        amount.formatted(.currency(code: "USD"))
+        let number = String(format: "%.2f", abs(amount))
+        return (amount < 0 && number != "0.00" ? "-$" : "$") + number
     }
 
     private var usageSection: some View {
@@ -208,7 +210,7 @@ struct GrokMenuBarView: View {
             Text(String(localized: "Extra usage credits"))
                 .font(.subheadline)
             if let balance = viewModel.usageData.prepaidBalance {
-                Text(balance, format: .currency(code: "USD"))
+                Text(verbatim: Self.usd(balance))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

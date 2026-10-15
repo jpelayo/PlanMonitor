@@ -18,13 +18,15 @@ final class ProviderRuntimeCoordinator {
         claude: ClaudeUsageViewModel,
         codex: CodexUsageViewModel,
         grok: GrokUsageViewModel,
-        openRouter: OpenRouterBudgetViewModel
+        openRouter: OpenRouterBudgetViewModel,
+        claudeAPI: ClaudePlatformViewModel
     ) {
         self.runtimes = [
             .claude: claude,
             .codex: codex,
             .grok: grok,
-            .openrouter: openRouter
+            .openrouter: openRouter,
+            .claudeapi: claudeAPI
         ]
         startMemoryPressureObservation()
     }

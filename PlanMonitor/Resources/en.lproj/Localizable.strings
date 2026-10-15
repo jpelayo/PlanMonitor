@@ -160,7 +160,7 @@
 "Track your Codex usage from the menu bar" = "Track your ChatGPT / Codex usage from the menu bar";
 "Connected as" = "Connected as";
 "Remove management key" = "Remove management key";
-"PlanMonitor is an independent tool for use with Claude, Codex, Grok, and OpenRouter. It is not affiliated with the vendors nor endorsed by them." = "PlanMonitor is an independent tool for use with Claude, Codex, Grok, and OpenRouter. It is not affiliated with the vendors nor endorsed by them.";
+"PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Grok, and OpenRouter. It is not affiliated with the vendors nor endorsed by them." = "PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Grok, and OpenRouter. It is not affiliated with the vendors nor endorsed by them.";
 "Extra Credits" = "Extra Credits";
 "Extra usage credits" = "Extra usage credits";
 "Auto top-up is on" = "Auto top-up is on";
@@ -280,13 +280,46 @@
 "Reset menu bar positions" = "Reset menu bar positions";
 
 /* Claude-API — menu bar text */
-"Promotional credit amount" = "Promotional credit amount";
-"Promotional credit percent" = "Promotional credit percent";
-"Spend amount" = "Spend amount";
-"Spend percent" = "Spend percent";
-"Prepaid credit amount" = "Prepaid credit amount";
-"To be invoiced amount" = "To be invoiced amount";
-"Promotional credit and spend amounts" = "Promotional credit and spend amounts";
-"Promotional credit and spend percents" = "Promotional credit and spend percents";
-"Promotional and prepaid credit amounts" = "Promotional and prepaid credit amounts";
-"Spend and to be invoiced amounts" = "Spend and to be invoiced amounts";
+"Total consumed" = "Total consumed";
+"Total available minus consumed" = "Total available minus consumed";
+"Consumed / available" = "Consumed / available";
+"(Available − consumed) / available" = "(Available − consumed) / available";
+"Consumed / your limit" = "Consumed / your limit";
+"Your limit minus consumed" = "Your limit minus consumed";
+"(Your limit − consumed) / your limit" = "(Your limit − consumed) / your limit";
+
+/* Claude-API */
+"PlanMonitor for Claude-API" = "PlanMonitor for Claude-API";
+"Sign in to Claude-API" = "Sign in to Claude-API";
+"Track your API promotional credit and spend from the menu bar" = "Track your API promotional credit and spend from the menu bar";
+"Use “Continue with email”. Google sign-in does not work inside this window." = "Use “Continue with email”. Google sign-in does not work inside this window.";
+"No billing data yet" = "No billing data yet";
+"Promotional credit" = "Promotional credit";
+"Spend this month" = "Spend this month";
+"Resets %@" = "Resets %@";
+"Notifies at" = "Notifies at";
+"Your limit" = "Your limit";
+"Anthropic's limit" = "Anthropic's limit";
+"Top-up target" = "Top-up target";
+"Top-up threshold" = "Top-up threshold";
+
+/* Currency (OpenRouter and Claude-API) */
+"Currency symbol" = "Currency symbol";
+"None (180)" = "None (180)";
+"Symbol before (USD 180)" = "Symbol before (USD 180)";
+"Symbol after (180 USD)" = "Symbol after (180 USD)";
+"Character before ($180)" = "Character before ($180)";
+"Character after (180$)" = "Character after (180$)";
+
+/* Claude-API, continued */
+"Prepaid credit" = "Prepaid credit";
+"To be invoiced" = "To be invoiced";
+"Auto-payment" = "Auto-payment";
+"On" = "On";
+"Off" = "Off";
+"Organization" = "Organization";
+"Spend limit" = "Spend limit";
+"A full ring is the promotional credit as granted." = "A full ring is the promotional credit as granted.";
+"A full ring is your own spend limit, or Anthropic's when you have not set one." = "A full ring is your own spend limit, or Anthropic's when you have not set one.";
+"Credit is reported in more than one currency; amounts may be mislabelled." = "Credit is reported in more than one currency; amounts may be mislabelled.";
+"The spend limit is unavailable right now." = "The spend limit is unavailable right now.";

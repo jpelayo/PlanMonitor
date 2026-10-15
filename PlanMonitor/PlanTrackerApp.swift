@@ -9,7 +9,7 @@ import AppKit
 import os
 import SwiftUI
 
-/// The SwiftUI app owns only the Settings scene. The four menu-bar items are AppKit
+/// The SwiftUI app owns only the Settings scene. The five menu-bar items are AppKit
 /// `NSStatusItem`s (see `StatusItemController`) so their digits are real, adaptive text; the
 /// sign-in and connect windows are `NSWindow`s hosted through `WindowRouter`.
 @main
@@ -19,6 +19,7 @@ struct PlanTrackerApp: App {
     @State private var codexViewModel: CodexUsageViewModel
     @State private var grokViewModel: GrokUsageViewModel
     @State private var openRouterViewModel: OpenRouterBudgetViewModel
+    @State private var claudeAPIViewModel: ClaudePlatformViewModel
     @State private var enabledProviders: EnabledProviders
     @State private var preferences: GlobalPreferences
     @State private var statusItems: StatusItemController
@@ -52,16 +53,18 @@ struct PlanTrackerApp: App {
         let codex = CodexUsageViewModel(secureStore: secureStore, defaults: defaults)
         let grok = GrokUsageViewModel(secureStore: secureStore, defaults: defaults)
         let openRouter = OpenRouterBudgetViewModel(secureStore: secureStore, defaults: defaults)
+        let claudeAPI = ClaudePlatformViewModel(secureStore: secureStore, defaults: defaults)
         let enabled = EnabledProviders(defaults: groupDefaults)
         let coordinator = ProviderRuntimeCoordinator(
             claude: claude,
             codex: codex,
             grok: grok,
-            openRouter: openRouter
+            openRouter: openRouter,
+            claudeAPI: claudeAPI
         )
         let reviewer = ReviewerMode(
             providers: enabled,
-            runtimes: [.claude: claude, .codex: codex, .grok: grok, .openrouter: openRouter]
+            runtimes: [.claude: claude, .codex: codex, .grok: grok, .openrouter: openRouter, .claudeapi: claudeAPI]
         )
 
         globalPreferences.onChange = { change in
@@ -71,7 +74,10 @@ struct PlanTrackerApp: App {
                 codex.pollingIntervalMinutes = minutes
                 grok.pollingIntervalMinutes = minutes
                 openRouter.pollingIntervalMinutes = minutes
+                claudeAPI.pollingIntervalMinutes = minutes
             case .percentageMode(let showRemaining):
+                // The money providers sit this out: their indicators read each in its own sense
+                // (credit as remaining, spend as used), so one global switch would misreport.
                 claude.showRemainingPercent = showRemaining
                 codex.showRemainingPercent = showRemaining
                 grok.showRemainingPercent = showRemaining
@@ -85,6 +91,7 @@ struct PlanTrackerApp: App {
         _codexViewModel = State(initialValue: codex)
         _grokViewModel = State(initialValue: grok)
         _openRouterViewModel = State(initialValue: openRouter)
+        _claudeAPIViewModel = State(initialValue: claudeAPI)
         _enabledProviders = State(initialValue: enabled)
         _preferences = State(initialValue: globalPreferences)
 
@@ -105,6 +112,11 @@ struct PlanTrackerApp: App {
         }
         router.register(.connectOpenRouter) {
             AnyView(OpenRouterConnectKeyView(viewModel: openRouter))
+        }
+        router.register(.loginClaudeAPI) {
+            AnyView(ClaudePlatformLoginView { cookies in
+                await claudeAPI.handleLoginSuccess(sessionCookies: cookies)
+            })
         }
 
         // Menu-bar items: one per enabled provider, label from the provider, dropdown is the
@@ -174,12 +186,29 @@ struct PlanTrackerApp: App {
                             snapshot: openRouter.snapshot,
                             connectionState: openRouter.connectionState,
                             display: openRouter.menuBarDisplay,
+                            currencyStyle: openRouter.currencyStyle,
                             ringFill: openRouter.ringFill,
                             font: openRouter.menuBarText.font
                         )
                     },
                     content: {
                         AnyView(OpenRouterMenuBarView(viewModel: openRouter, providers: enabled, preferences: globalPreferences))
+                    }
+                ),
+                .init(
+                    id: .claudeapi,
+                    label: {
+                        ClaudePlatformMenuBarLabel.make(
+                            snapshot: claudeAPI.snapshot,
+                            authState: claudeAPI.authState,
+                            display: claudeAPI.menuBarDisplay,
+                            currencyStyle: claudeAPI.currencyStyle,
+                            ringFill: claudeAPI.ringFill,
+                            font: claudeAPI.menuBarText.font
+                        )
+                    },
+                    content: {
+                        AnyView(ClaudePlatformMenuBarView(viewModel: claudeAPI, providers: enabled, preferences: globalPreferences))
                     }
                 )
             ],
@@ -232,6 +261,7 @@ struct PlanTrackerApp: App {
                 codexViewModel: codexViewModel,
                 grokViewModel: grokViewModel,
                 openRouterViewModel: openRouterViewModel,
+                claudeAPIViewModel: claudeAPIViewModel,
                 providers: enabledProviders,
                 preferences: preferences,
                 resetMenuBarPositions: { statusItems.resetPositions() }

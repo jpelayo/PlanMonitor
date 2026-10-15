@@ -131,6 +131,28 @@ struct MoneyTests {
         let fraction = try! #require(Money.fraction(spent: 120, limit: 100))
         #expect(abs(fraction - 1.2) < 0.0001)
     }
+
+    /// OpenRouter's API names no currency, so its credits are written as USD in the user's style;
+    /// the menu bar floors, so a deficit never flatters.
+    @Test("The menu bar writes USD in the chosen style, floored")
+    func menuBarCurrencyStyles() {
+        let balance = Decimal(string: "25.54")!
+        #expect(Money.formatMenuBar(balance, style: .signAfter) == "25$")
+        #expect(Money.formatMenuBar(balance, style: .signBefore) == "$25")
+        #expect(Money.formatMenuBar(balance, style: .codeAfter) == "25 USD")
+        #expect(Money.formatMenuBar(balance, style: .none) == "25")
+        #expect(Money.formatMenuBar(Decimal(string: "-3.40")!, style: .signBefore) == "-$4")
+        // No thousands separator below the k form.
+        #expect(Money.formatMenuBar(Decimal(string: "9999.99")!, style: .signAfter) == "9999$")
+    }
+
+    /// Platform rule: a dot whatever the locale, no thousands separator, two decimals.
+    @Test("The dropdown writes a dot, no grouping, two decimals")
+    func dropdownNumberRule() {
+        #expect(Money.format(Decimal(string: "1234.5")!, style: .signAfter) == "1234.50$")
+        #expect(Money.format(Decimal(string: "0.016")!, style: .codeAfter) == "0.02 USD")
+        #expect(Money.format(Decimal(string: "-0.001")!, style: .signAfter) == "0.00$")
+    }
 }
 
 @Suite("Account credit")

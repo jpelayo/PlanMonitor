@@ -163,7 +163,7 @@
 "Track your Codex usage from the menu bar" = "Controla tu uso de ChatGPT / Codex desde la barra de menús";
 "Connected as" = "Conectado como";
 "Remove management key" = "Eliminar clave de gestión";
-"PlanMonitor is an independent tool for use with Claude, Codex, Grok, and OpenRouter. It is not affiliated with the vendors nor endorsed by them." = "PlanMonitor es una herramienta independiente para usar con Claude, Codex, Grok y OpenRouter. No está afiliada a los proveedores ni cuenta con su respaldo.";
+"PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Grok, and OpenRouter. It is not affiliated with the vendors nor endorsed by them." = "PlanMonitor es una herramienta independiente para usar con Claude, Claude Platform, Codex, Grok y OpenRouter. No está afiliada a los proveedores ni cuenta con su respaldo.";
 
 /* Aplicación unificada — anfitrión */
 "PlanMonitor for Claude" = "PlanMonitor para Claude";
@@ -280,13 +280,46 @@
 "Reset menu bar positions" = "Restablecer posiciones en la barra";
 
 /* Claude-API — texto de la barra de menús */
-"Promotional credit amount" = "Importe del crédito promocional";
-"Promotional credit percent" = "Porcentaje del crédito promocional";
-"Spend amount" = "Importe del gasto";
-"Spend percent" = "Porcentaje del gasto";
-"Prepaid credit amount" = "Importe del crédito prepagado";
-"To be invoiced amount" = "Importe pendiente de facturar";
-"Promotional credit and spend amounts" = "Importes del crédito promocional y del gasto";
-"Promotional credit and spend percents" = "Porcentajes del crédito promocional y del gasto";
-"Promotional and prepaid credit amounts" = "Importes del crédito promocional y del prepagado";
-"Spend and to be invoiced amounts" = "Importes del gasto y de lo pendiente de facturar";
+"Total consumed" = "Total consumido";
+"Total available minus consumed" = "Total disponible menos consumido";
+"Consumed / available" = "Consumido / disponible";
+"(Available − consumed) / available" = "(Disponible − consumido) / disponible";
+"Consumed / your limit" = "Consumido / tu límite";
+"Your limit minus consumed" = "Tu límite menos consumido";
+"(Your limit − consumed) / your limit" = "(Tu límite − consumido) / tu límite";
+
+/* Claude-API */
+"PlanMonitor for Claude-API" = "PlanMonitor para Claude-API";
+"Sign in to Claude-API" = "Iniciar sesión en Claude-API";
+"Track your API promotional credit and spend from the menu bar" = "Sigue tu crédito promocional y tu gasto de la API desde la barra de menús";
+"Use “Continue with email”. Google sign-in does not work inside this window." = "Usa «Continuar con correo electrónico». El inicio de sesión con Google no funciona en esta ventana.";
+"No billing data yet" = "Aún no hay datos de facturación";
+"Promotional credit" = "Crédito promocional";
+"Spend this month" = "Gasto de este mes";
+"Resets %@" = "Se reinicia %@";
+"Notifies at" = "Avisa en";
+"Your limit" = "Tu límite";
+"Anthropic's limit" = "Límite de Anthropic";
+"Top-up target" = "Recarga hasta";
+"Top-up threshold" = "Recarga por debajo de";
+
+/* Moneda (OpenRouter y Claude-API) */
+"Currency symbol" = "Símbolo de moneda";
+"None (180)" = "Ninguno (180)";
+"Symbol before (USD 180)" = "Símbolo delante (USD 180)";
+"Symbol after (180 USD)" = "Símbolo detrás (180 USD)";
+"Character before ($180)" = "Carácter delante ($180)";
+"Character after (180$)" = "Carácter detrás (180$)";
+
+/* Claude-API, continuación */
+"Prepaid credit" = "Crédito prepagado";
+"To be invoiced" = "Pendiente de facturar";
+"Auto-payment" = "Pago automático";
+"On" = "Activado";
+"Off" = "Desactivado";
+"Organization" = "Organización";
+"Spend limit" = "Límite de gasto";
+"A full ring is the promotional credit as granted." = "El anillo completo es el crédito promocional concedido.";
+"A full ring is your own spend limit, or Anthropic's when you have not set one." = "El anillo completo es tu propio límite de gasto o, si no has fijado ninguno, el de Anthropic.";
+"Credit is reported in more than one currency; amounts may be mislabelled." = "El crédito figura en más de una moneda; los importes podrían estar mal etiquetados.";
+"The spend limit is unavailable right now." = "El límite de gasto no está disponible en este momento.";

@@ -156,7 +156,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     ///  1. nothing before `settlingDelay`;
     ///  2. `unknown` never counts as hidden;
     ///  3. a verdict must be confirmed by a second observation `confirmationDelay` later;
-    ///  4. *every* item hidden is not four independent failures — it is the per-bundle-id OS
+    ///  4. *every* item hidden is not several independent failures — it is the per-bundle-id OS
     ///     switch, which resetting positions cannot fix, so that case only opens the window;
     ///  5. the heal is scoped to the affected items and runs at most once per launch.
     func checkVisibility() {
@@ -227,7 +227,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             removeItem(for: provider)
         }
         // New status items are inserted at the left edge of the status area, so create in
-        // reverse order to end up with Claude, Codex, Grok, OpenRouter left to right.
+        // reverse order to end up with Claude, Codex, Grok, OpenRouter, Claude-API left to right.
         for provider in ProviderID.allCases.reversed() where enabledProviders.isEnabled(provider) {
             addItemIfNeeded(for: provider)
         }

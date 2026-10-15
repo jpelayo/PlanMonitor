@@ -10,10 +10,13 @@ enum OpenRouterMenuBarLabel {
         snapshot: OpenRouterSnapshot,
         connectionState: ConnectionState,
         display: MenuBarDisplay,
+        currencyStyle: CurrencyStyle,
         ringFill: Double?,
         font: NSFont
     ) -> MenuBarLabel {
-        let text = display == .iconOnly ? nil : valueText(snapshot: snapshot, connectionState: connectionState, display: display)
+        let text = display == .iconOnly
+            ? nil
+            : valueText(snapshot: snapshot, connectionState: connectionState, display: display, currencyStyle: currencyStyle)
         return MenuBarLabel(
             symbolName: "dollarsign.ring.dashed",
             fallbackSymbol: "ring.dashed",
@@ -44,19 +47,20 @@ enum OpenRouterMenuBarLabel {
     private static func valueText(
         snapshot: OpenRouterSnapshot,
         connectionState: ConnectionState,
-        display: MenuBarDisplay
+        display: MenuBarDisplay,
+        currencyStyle: CurrencyStyle
     ) -> String? {
         guard connectionState.showsBudgets, let credit = snapshot.accountCredit else { return nil }
         switch display {
         case .iconOnly:
             return nil
         case .amount:
-            return Money.formatMenuBar(credit.remaining)
+            return Money.formatMenuBar(credit.remaining, style: currencyStyle)
         case .percent:
             // Percent of the tightest real budget remaining — not of lifetime credit,
             // which has no denominator worth showing.
             guard let worst = snapshot.worstBudgetFraction else {
-                return Money.formatMenuBar(credit.remaining)
+                return Money.formatMenuBar(credit.remaining, style: currencyStyle)
             }
             return "\(Int(((1 - worst) * 100).rounded()))%"
         }

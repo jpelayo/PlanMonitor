@@ -2,129 +2,168 @@ import Foundation
 import Testing
 @testable import PlanMonitor
 
-/// The console reports money in minor units and omits what does not apply to an account, so the two
-/// things worth pinning down are the unit arithmetic and the difference between "not reported" and
-/// "zero". Both are places where a silent change would misreport money rather than merely look
-/// wrong.
+/// The console reports money in minor units and omits what does not apply to an account, so the
+/// things worth pinning down are the arithmetic of the three sums and the difference between "not
+/// reported" and "zero". Both are places where a silent change would misreport money rather than
+/// merely look wrong.
 ///
-/// The figures below are the real shape seen on a Max account: a $200 promotional grant with $199.54
-/// left, 46 cents spent, and one cent of card-paid credit.
+/// The figures below are the live account of 2026-10-14: $200 available (the promotional grant, no
+/// paid credit), $19.94 consumed this month, and an own limit of $200.
 struct ClaudePlatformMenuBarDigitsTests {
     private static let live = ClaudePlatformMenuBarDigits.Figures(
-        promoRemaining: 19_954,
-        promoGranted: 20_000,
-        spend: 46,
-        spendLimit: 20_000,
-        prepaidRemaining: 1,
-        invoiced: nil,
+        available: 20_000,
+        consumed: 1_994,
+        userLimit: 20_000,
         currency: "USD"
     )
 
-    // MARK: - Single indicators
-
-    @Test func promoAmountShowsWholeUnitsOfWhatIsLeft() {
-        let resolved = ClaudePlatformMenuBarDigits.resolve(display: .promoAmount, figures: Self.live)
-        #expect(resolved.text == "$199")
-        // Severity is always the *used* fraction, whatever sense the digits show: 46/20000.
-        #expect(resolved.severityFraction == 0.0023)
+    private func text(
+        _ display: ClaudePlatformMenuBarDisplay,
+        _ figures: ClaudePlatformMenuBarDigits.Figures = ClaudePlatformMenuBarDigitsTests.live
+    ) -> String? {
+        ClaudePlatformMenuBarDigits.resolve(display: display, figures: figures, style: .signAfter).text
     }
 
-    @Test func promoPercentShowsWhatIsLeftNotWhatIsUsed() {
-        let resolved = ClaudePlatformMenuBarDigits.resolve(display: .promoPercent, figures: Self.live)
-        // 19954/20000 = 99.77%, truncated.
-        #expect(resolved.text == "99%")
+    // MARK: - The eight choices
+
+    @Test func everyChoiceReadsTheLiveAccount() {
+        #expect(text(.iconOnly) == nil)
+        #expect(text(.consumed) == "19$")                 // 19.94, truncated
+        #expect(text(.left) == "180$")                    // 200 − 19.94
+        // `/` separates two amounts; this provider never shows a percentage.
+        #expect(text(.consumedOfAvailable) == "19/200$")
+        #expect(text(.leftOfAvailable) == "180/200$")
+        #expect(text(.consumedOfUserLimit) == "19/200$")
+        #expect(text(.leftUnderUserLimit) == "180$")
+        #expect(text(.leftOfUserLimit) == "180/200$")
     }
 
-    @Test func spendPercentShowsWhatHasGone() {
-        let resolved = ClaudePlatformMenuBarDigits.resolve(display: .spendPercent, figures: Self.live)
-        // 46/20000 = 0.23%, truncated to zero — correct, and the amount form is there for detail.
-        #expect(resolved.text == "0%")
+    @Test func theDefaultIsWhatIsLeftUnderTheOwnLimit() {
+        #expect(ClaudePlatformMenuBarDisplay.default == .leftUnderUserLimit)
     }
 
     @Test func iconOnlyDrawsNoText() {
-        let resolved = ClaudePlatformMenuBarDigits.resolve(display: .iconOnly, figures: Self.live)
+        let resolved = ClaudePlatformMenuBarDigits.resolve(display: .iconOnly, figures: Self.live, style: .codeAfter)
         #expect(resolved.text == nil)
         #expect(resolved.severityFraction == nil)
     }
 
-    // MARK: - Pairs
-
-    @Test func pairsJoinWithAMiddleDotInSelectionOrder() {
-        let resolved = ClaudePlatformMenuBarDigits.resolve(display: .promoAndSpendAmount, figures: Self.live)
-        #expect(resolved.text == "$199\u{00B7}$0")
+    /// Severity is always the *used* fraction of the denominator on show, whatever sense the
+    /// digits read in, so tint means one thing everywhere.
+    @Test func severityIsUsedAgainstTheChoicesOwnDenominator() {
+        let figures = ClaudePlatformMenuBarDigits.Figures(available: 40_000, consumed: 18_000, userLimit: 20_000)
+        func severity(_ display: ClaudePlatformMenuBarDisplay) -> Double? {
+            ClaudePlatformMenuBarDigits.resolve(display: display, figures: figures, style: .codeAfter).severityFraction
+        }
+        #expect(severity(.left) == 0.45)
+        #expect(severity(.leftOfAvailable) == 0.45)
+        #expect(severity(.leftUnderUserLimit) == 0.9)
+        #expect(severity(.leftOfUserLimit) == 0.9)
     }
 
-    @Test func percentPairKeepsEachIndicatorsOwnSense() {
-        let resolved = ClaudePlatformMenuBarDigits.resolve(display: .promoAndSpendPercent, figures: Self.live)
-        // Credit left, spend gone — deliberately not the same sense.
-        #expect(resolved.text == "99%\u{00B7}0%")
-    }
+    // MARK: - Overspend
 
-    @Test func severityTakesTheTightestGaugeOnShow() {
-        let figures = ClaudePlatformMenuBarDigits.Figures(
-            promoRemaining: 10_000, promoGranted: 20_000,   // 50% used
-            spend: 18_000, spendLimit: 20_000               // 90% used
-        )
-        let resolved = ClaudePlatformMenuBarDigits.resolve(display: .promoAndSpendAmount, figures: figures)
-        #expect(resolved.severityFraction == 0.9)
+    @Test func whatIsLeftNeverGoesNegative() {
+        let over = ClaudePlatformMenuBarDigits.Figures(available: 20_000, consumed: 25_000, userLimit: 20_000, currency: "USD")
+        #expect(text(.left, over) == "0$")
+        #expect(text(.leftOfAvailable, over) == "0/200$")
+        #expect(text(.leftUnderUserLimit, over) == "0$")
+        #expect(text(.leftOfUserLimit, over) == "0/200$")
+        // The consumed side stays honest: more than everything was spent.
+        #expect(text(.consumedOfAvailable, over) == "250/200$")
     }
 
     // MARK: - Absent versus zero
 
-    @Test func anUnreportedFigureIsDroppedRatherThanPrintedAsZero() {
-        // A pre-paid account has nothing to invoice. Printing "$0" would claim a fact the console
-        // never reported.
-        let resolved = ClaudePlatformMenuBarDigits.resolve(display: .invoicedAmount, figures: Self.live)
-        #expect(resolved.text == nil)
+    @Test func noOwnLimitMeansTheLimitChoicesDrawNothing() {
+        // Anthropic's cap is not the maximum the user set, so it never stands in for one.
+        let noLimit = ClaudePlatformMenuBarDigits.Figures(available: 20_000, consumed: 1_994, currency: "USD")
+        #expect(text(.consumedOfUserLimit, noLimit) == nil)
+        #expect(text(.leftUnderUserLimit, noLimit) == nil)
+        #expect(text(.leftOfUserLimit, noLimit) == nil)
+        #expect(text(.left, noLimit) == "180$")
     }
 
-    @Test func aPairFallsBackToWhicheverHalfReports() {
-        let resolved = ClaudePlatformMenuBarDigits.resolve(display: .spendAndInvoicedAmount, figures: Self.live)
-        #expect(resolved.text == "$0")
-    }
-
-    @Test func noIndicatorSubstitutesForAnother() {
-        // Only promotional credit is reported; asking for prepaid must not quietly show it.
-        let promoOnly = ClaudePlatformMenuBarDigits.Figures(promoRemaining: 19_954, promoGranted: 20_000)
-        let resolved = ClaudePlatformMenuBarDigits.resolve(display: .prepaidAmount, figures: promoOnly)
-        #expect(resolved.text == nil)
+    @Test func noConsumptionFigureMeansNothingIsComputedFromIt() {
+        // `current_spend` failed: "available" alone is not "what is left".
+        let noSpend = ClaudePlatformMenuBarDigits.Figures(available: 20_000, userLimit: 20_000)
+        for display in ClaudePlatformMenuBarDisplay.allCases {
+            #expect(text(display, noSpend) == nil, "\(display.rawValue) needs the consumed sum")
+        }
     }
 
     @Test func everyDisplaySurvivesAnEmptySnapshot() {
         let empty = ClaudePlatformMenuBarDigits.Figures()
         for display in ClaudePlatformMenuBarDisplay.allCases {
-            let resolved = ClaudePlatformMenuBarDigits.resolve(display: display, figures: empty)
+            let resolved = ClaudePlatformMenuBarDigits.resolve(display: display, figures: empty, style: .codeAfter)
             #expect(resolved.text == nil, "\(display.rawValue) should draw nothing with no data")
             #expect(resolved.severityFraction == nil)
         }
     }
 
-    @Test func residueReadsAsZeroButStillReports() {
-        // One cent of card-paid credit is rounding residue, not money — it shows as zero, and
-        // crucially it is not confused with "no prepaid balance at all".
-        let resolved = ClaudePlatformMenuBarDigits.resolve(display: .prepaidAmount, figures: Self.live)
-        #expect(resolved.text == "$0")
-    }
-
     // MARK: - Money formatting
 
     @Test func amountsTruncateTowardZeroRatherThanRounding() {
-        #expect(ClaudePlatformMoney.formatMenuBar(minorUnits: 19_999, currency: "USD") == "$199")
-        #expect(ClaudePlatformMoney.formatMenuBar(minorUnits: 20_000, currency: "USD") == "$200")
+        #expect(ClaudePlatformMoney.formatMenuBar(minorUnits: 19_999, currency: "USD", style: .codeAfter) == "199 USD")
+        #expect(ClaudePlatformMoney.formatMenuBar(minorUnits: 20_000, currency: "USD", style: .codeAfter) == "200 USD")
     }
 
     @Test func fiveFigureAmountsUseTheKForm() {
-        #expect(ClaudePlatformMoney.formatMenuBar(minorUnits: 1_250_000, currency: "USD") == "$12.5k")
-        #expect(ClaudePlatformMoney.formatMenuBar(minorUnits: 15_000_000, currency: "USD") == "$150k")
+        #expect(ClaudePlatformMoney.formatMenuBar(minorUnits: 1_250_000, currency: "USD", style: .codeAfter) == "12.5k USD")
+        #expect(ClaudePlatformMoney.formatMenuBar(minorUnits: 15_000_000, currency: "USD", style: .codeAfter) == "150k USD")
     }
 
-    @Test func aNonUSDCurrencyKeepsItsCode() {
-        #expect(ClaudePlatformMoney.formatMenuBar(minorUnits: 19_954, currency: "EUR") == "199 EUR")
+    /// Platform rule: never more than two decimals, never a thousands separator.
+    @Test func aFinerExponentStillPrintsTwoDecimals() {
+        #expect(ClaudePlatformMoney.formatValue(minorUnits: 12_340, exponent: 3) == "12.34")
+        #expect(ClaudePlatformMoney.formatValue(minorUnits: 123_456_789) == "1234567.89")
     }
 
     @Test func theDropdownFormCarriesCentsAndCurrency() {
-        #expect(ClaudePlatformMoney.format(minorUnits: 19_954, currency: "USD") == "199.54 USD")
-        #expect(ClaudePlatformMoney.format(minorUnits: 0, currency: "USD") == "0.00 USD")
+        #expect(ClaudePlatformMoney.format(minorUnits: 19_954, currency: "USD", style: .codeAfter) == "199.54 USD")
+        #expect(ClaudePlatformMoney.format(minorUnits: 0, currency: "USD", style: .codeAfter) == "0.00 USD")
+    }
+
+    @Test func everyCurrencyStyleOnTheBar() {
+        func left(_ style: CurrencyStyle) -> String? {
+            ClaudePlatformMenuBarDigits.resolve(display: .left, figures: Self.live, style: style).text
+        }
+        // The user's words: the character is `$`, flush; the symbol is `USD`, spaced.
+        #expect(left(.none) == "180")
+        #expect(left(.signBefore) == "$180")
+        #expect(left(.signAfter) == "180$")
+        #expect(left(.codeBefore) == "USD 180")
+        #expect(left(.codeAfter) == "180 USD")
+        #expect(CurrencyStyle.default == .signAfter)
+    }
+
+    @Test func theCharacterFollowsTheReportedCurrency() {
+        var euros = Self.live
+        euros.currency = "EUR"
+        #expect(ClaudePlatformMenuBarDigits.resolve(display: .left, figures: euros, style: .signAfter).text == "180€")
+        #expect(ClaudePlatformMenuBarDigits.resolve(display: .left, figures: euros, style: .codeAfter).text == "180 EUR")
+    }
+
+    /// A `/` pair carries its currency once: the bar has no width for it twice.
+    @Test func aPairWritesItsCurrencyOnce() {
+        func pair(_ style: CurrencyStyle) -> String? {
+            ClaudePlatformMenuBarDigits.resolve(display: .leftOfAvailable, figures: Self.live, style: style).text
+        }
+        #expect(pair(.signAfter) == "180/200$")
+        #expect(pair(.codeBefore) == "USD 180/200")
+    }
+
+    @Test func aDeficitKeepsItsMinusOutermost() {
+        #expect(CurrencyStyle.signBefore.apply(to: "-4", currency: "USD") == "-$4")
+        #expect(CurrencyStyle.codeBefore.apply(to: "-4", currency: "USD") == "-USD 4")
+        #expect(CurrencyStyle.signAfter.apply(to: "-4", currency: "USD") == "-4$")
+    }
+
+    @Test func noReportedCurrencyMeansBareAmounts() {
+        var figures = Self.live
+        figures.currency = nil
+        let resolved = ClaudePlatformMenuBarDigits.resolve(display: .left, figures: figures, style: .codeAfter)
+        #expect(resolved.text == "180")
     }
 
     @Test func absentBalancesStayAbsentThroughNormalisation() {
