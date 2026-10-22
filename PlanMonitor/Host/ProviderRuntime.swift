@@ -45,3 +45,10 @@ extension ClaudePlatformViewModel: ProviderRuntime {
     func disable() async { await suspend() }
     func refresh() async { await refreshUsage() }
 }
+
+extension OpenCodeViewModel: ProviderRuntime {
+    var providerID: ProviderID { .opencode }
+    func enable() async { await resume() }
+    func disable() async { await suspend() }
+    func refresh() async { await refreshUsage() }
+}

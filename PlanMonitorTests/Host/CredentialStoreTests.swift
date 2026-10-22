@@ -408,6 +408,20 @@ struct CredentialStoreTests {
         }
     }
 
+    @Test func openCodeKeyRemovalLeavesOtherProvidersUntouched() async throws {
+        let memory = try await Self.seedAllProviders()
+        let before = await Self.rawSnapshot(memory)
+
+        await OpenCodeCredentialStore(secureStore: memory).clear()
+
+        let accounts = await memory.accounts
+        #expect(!accounts.contains(OpenCodeCredentialStore.account))
+        let after = await Self.rawSnapshot(memory)
+        for account in Self.allAccounts where account != OpenCodeCredentialStore.account {
+            #expect(after[account] == before[account], "\(account) changed")
+        }
+    }
+
     // MARK: - Accessibility
 
     @Test func newWritesUseDeviceOnlyAccessibilityAndALabel() async throws {
@@ -418,7 +432,8 @@ struct CredentialStoreTests {
             GrokCredentialStore.sessionAccount: "PlanMonitor · Grok session",
             GrokCredentialStore.credentialsAccount: "PlanMonitor · Grok oidc",
             OpenRouterCredentialStore.account: "PlanMonitor · OpenRouter managementKey",
-            ClaudePlatformCredentialStore.account: "PlanMonitor · Claude-API session"
+            ClaudePlatformCredentialStore.account: "PlanMonitor · Claude-API session",
+            OpenCodeCredentialStore.account: "PlanMonitor · OpenCode apiKey"
         ]
 
         for account in Self.allAccounts {
@@ -436,7 +451,8 @@ struct CredentialStoreTests {
         GrokCredentialStore.sessionAccount,
         GrokCredentialStore.credentialsAccount,
         OpenRouterCredentialStore.account,
-        ClaudePlatformCredentialStore.account
+        ClaudePlatformCredentialStore.account,
+        OpenCodeCredentialStore.account
     ]
 
     private static func seedAllProviders() async throws -> InMemorySecureStore {
@@ -452,6 +468,8 @@ struct CredentialStoreTests {
             .save(OpenRouterManagementKey(key: "sk-or-v1-openrouter", validatedAt: fixedDate))
         try await ClaudePlatformCredentialStore(secureStore: memory)
             .save(ClaudePlatformSession(cookieHeader: "sessionKey=console", capturedAt: fixedDate))
+        try await OpenCodeCredentialStore(secureStore: memory)
+            .save(OpenCodeAPIKey(key: "oc_sk_000000000000_opencode", validatedAt: fixedDate))
         let accounts = await memory.accounts
         #expect(accounts == allAccounts.sorted())
         return memory

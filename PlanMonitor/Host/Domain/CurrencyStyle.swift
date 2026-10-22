@@ -1,8 +1,8 @@
 import Foundation
 
 /// How a money provider writes the currency beside an amount, in its menu-bar item and its dropdown
-/// alike. OpenRouter and Claude-API each keep their own choice, `<provider>.currencyStyle`, set in
-/// Settings (user decision, 2026-10-14).
+/// alike. OpenRouter, Claude-API and OpenCode each keep their own choice, `<provider>.currencyStyle`,
+/// set in Settings (user decision, 2026-10-14).
 ///
 /// The labels use the user's words: the **symbol** is the ISO code (`USD`), the **character** the
 /// currency sign (`$`). The cases are named for what they print.

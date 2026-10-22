@@ -6,6 +6,7 @@ struct SettingsView: View {
     @Bindable var grokViewModel: GrokUsageViewModel
     @Bindable var openRouterViewModel: OpenRouterBudgetViewModel
     @Bindable var claudeAPIViewModel: ClaudePlatformViewModel
+    @Bindable var openCodeViewModel: OpenCodeViewModel
     @Bindable var providers: EnabledProviders
     @Bindable var preferences: GlobalPreferences
     /// Forgets the saved menu bar positions and rebuilds the items at the default spot.
@@ -113,6 +114,7 @@ struct SettingsView: View {
                 case .grok: grokControls
                 case .openrouter: openRouterControls
                 case .claudeapi: claudePlatformControls
+                case .opencode: openCodeControls
                 }
             } header: {
                 Text(enabledProviderList.count > 1 ? String(localized: "Providers") : selectedProvider.displayName)
@@ -131,7 +133,7 @@ struct SettingsView: View {
                     }
                 }
                 LabeledContent(String(localized: "About")) {
-                    Text(String(localized: "PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Grok, and OpenRouter. It is not affiliated with the vendors nor endorsed by them."))
+                    Text(String(localized: "PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Grok, OpenCode, and OpenRouter. It is not affiliated with the vendors nor endorsed by them."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.trailing)
@@ -298,7 +300,68 @@ struct SettingsView: View {
         )
     }
 
-    /// The two money providers' currency choice — one control, so both read the same.
+    /// The OpenCode shape is OpenRouter's — a pasted key, its own display and ring pickers — plus a
+    /// member picker that only appears when the workspace reports more than one member. Its Go
+    /// percentages follow the global "Show percentage" above.
+    @ViewBuilder
+    private var openCodeControls: some View {
+        SessionTrackingControls(preferences: openCodeViewModel.sessionPreferences)
+        MenuBarTextControls(preferences: openCodeViewModel.menuBarText)
+        if let prefix = openCodeViewModel.connectionState.keyPrefix {
+            LabeledContent(String(localized: "Connected with"), value: prefix)
+            HStack {
+                Button(String(localized: "Replace key")) {
+                    WindowRouter.shared.open(.connectOpenCode)
+                }
+                Button(String(localized: "Remove key"), role: .destructive) {
+                    Task { await openCodeViewModel.disconnect() }
+                }
+            }
+        } else {
+            Text(String(localized: "Not connected"))
+                .foregroundStyle(.secondary)
+            Button(String(localized: "Connect OpenCode")) {
+                WindowRouter.shared.open(.connectOpenCode)
+            }
+        }
+        if openCodeViewModel.members.count > 1 {
+            Picker(String(localized: "Member"), selection: $openCodeViewModel.memberID) {
+                Text(String(localized: "Whole workspace")).tag(String?.none)
+                ForEach(openCodeViewModel.members) { member in
+                    Text(member.email ?? member.userID).tag(Optional(member.userID))
+                }
+            }
+            .pickerStyle(.menu)
+        }
+        Picker(String(localized: "Menu bar shows"), selection: $openCodeViewModel.menuBarDisplay) {
+            ForEach(OpenCodeMenuBarDisplay.allCases, id: \.self) { display in
+                Text(display.displayName).tag(display)
+            }
+        }
+        .pickerStyle(.menu)
+        if openCodeViewModel.connectionState.showsBudget, !openCodeViewModel.isDemoMode,
+           !openCodeViewModel.snapshot.isEmpty, openCodeViewModel.snapshot.go == nil {
+            Text(String(localized: "Go limits: not available for this key or workspace."))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        currencyStylePicker($openCodeViewModel.currencyStyle)
+        VStack(alignment: .leading, spacing: 2) {
+            Picker(String(localized: "Menu bar ring"), selection: $openCodeViewModel.ringSource) {
+                ForEach(OpenCodeRingSource.allCases, id: \.self) { source in
+                    Text(source.displayName).tag(source)
+                }
+            }
+            .pickerStyle(.menu)
+            if let caption = openCodeViewModel.ringSource.caption {
+                Text(caption)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// The money providers' currency choice — one control, so all read the same.
     private func currencyStylePicker(_ selection: Binding<CurrencyStyle>) -> some View {
         Picker(String(localized: "Currency symbol"), selection: selection) {
             ForEach(CurrencyStyle.allCases, id: \.self) { style in

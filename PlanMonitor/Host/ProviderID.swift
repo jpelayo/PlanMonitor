@@ -5,10 +5,11 @@ nonisolated enum ProviderID: String, CaseIterable, Codable, Identifiable, Sendab
     case codex
     case grok
     case openrouter
-    /// Declared last on purpose: status items are created from `allCases.reversed()` with AppKit
-    /// inserting at the left edge, so the last case lands rightmost — and existing users' items
-    /// keep their order.
+    /// Providers added later are declared last, newest at the end, on purpose: status items are
+    /// created from `allCases.reversed()` with AppKit inserting at the left edge, so the last case
+    /// lands rightmost — and existing users' items keep their order.
     case claudeapi
+    case opencode
 
     var id: String { rawValue }
 
@@ -19,6 +20,7 @@ nonisolated enum ProviderID: String, CaseIterable, Codable, Identifiable, Sendab
         case .grok: "Grok"
         case .openrouter: "OpenRouter"
         case .claudeapi: "Claude-API"
+        case .opencode: "OpenCode"
         }
     }
 }

@@ -1,6 +1,6 @@
 # PlanMonitor
 
-A native macOS menu bar app that tracks your AI usage limits and spending in real time — for **Claude**, **Codex (ChatGPT)**, **Grok**, **OpenRouter** and **Claude-API** — from one lightweight process.
+A native macOS menu bar app that tracks your AI usage limits and spending in real time — for **Claude**, **Codex (ChatGPT)**, **Grok**, **OpenRouter**, **Claude-API** and **OpenCode** — from one lightweight process.
 
 ![macOS](https://img.shields.io/badge/macOS-15.0+-blue)
 ![Swift](https://img.shields.io/badge/Swift-6.2+-orange)
@@ -8,7 +8,7 @@ A native macOS menu bar app that tracks your AI usage limits and spending in rea
 
 ## What it does
 
-Each provider you enable gets its own menu bar item with its own dropdown, sign-in, polling and cache. Enable one, two, or all five — at least one is always on so Settings stays reachable.
+Each provider you enable gets its own menu bar item with its own dropdown, sign-in, polling and cache. Enable one, two, or all six — at least one is always on so Settings stays reachable.
 
 | Provider | Signs in with | Shows |
 |---|---|---|
@@ -17,8 +17,9 @@ Each provider you enable gets its own menu bar item with its own dropdown, sign-
 | **Grok** | accounts.x.ai + one-time usage approval | Weekly SuperGrok pool with per-product contributions, monthly allowance, extra usage credits |
 | **OpenRouter** | a pasted **management** key (read-only, cannot spend) | Remaining credit, spend over the last 15 min / hour / day / month, projected month, per-key and guardrail budgets, recently used models |
 | **Claude-API** (Claude Platform) | platform.claude.com (embedded browser, "Continue with email") | Anthropic API console money: promotional API credit and its expiry, this month's spend against your own spend limit (else Anthropic's), prepaid credit, amount to be invoiced, auto-payment on/off, Claude service status |
+| **OpenCode** | a pasted Console API key with **Usage › Read** and **Budgets › Read** (cannot call models) | Go plan 5-hour, weekly and monthly limits with their resets, this month's Console spend against your monthly budget, OpenCode service status. The credit balance is not shown yet: OpenCode does not give it to API keys |
 
-Shared across all five:
+Shared across all six:
 
 - **Session time** — an optional accumulator that infers how long you have been actively using each provider today, from movement in its usage counters. Per-provider on/off, detection interval and daily reset hour.
 - **Extra expenditure line** — Claude, Codex and Grok headers show whether pay-as-you-go spend is enabled and how much of the cap is used.
@@ -74,7 +75,7 @@ Select the app scheme and run (⌘R).
 
 1. Launch PlanMonitor — the Claude item appears in your menu bar.
 2. Open **Settings…** and tick the providers you want. Each new item appears immediately.
-3. Sign in to each provider from its own dropdown (OpenRouter asks for a management key from *Settings → Management Keys* on openrouter.ai; Claude-API signs in with **Continue with email**, because Google sign-in does not work inside the app's sign-in window).
+3. Sign in to each provider from its own dropdown (OpenRouter asks for a management key from *Settings → Management Keys* on openrouter.ai; Claude-API signs in with **Continue with email**, because Google sign-in does not work inside the app's sign-in window; OpenCode asks for a personal API key from *Account → Personal API keys* in the OpenCode Console, restricted to **Usage: Read** and **Budgets: Read**).
 4. Turn on **Track session time** per provider if you want the daily usage-time line.
 
 To see the app with sample data and no accounts, launch it with the `-demo` argument.
@@ -83,12 +84,12 @@ To see the app with sample data and no accounts, launch it with the `-demo` argu
 
 - Sessions and keys are stored only in the macOS Keychain, one item per provider, in a versioned format. Signing out of one provider removes only that provider's items.
 - Nothing is sent anywhere except to the provider you signed in to. There is no telemetry.
-- Each login runs in its own embedded browser locked to that provider's domains; the OpenRouter management key can read usage but cannot make model calls.
+- Each login runs in its own embedded browser locked to that provider's domains; the OpenRouter management key can read usage but cannot make model calls, and the OpenCode key needs only Usage › Read and Budgets › Read.
 - A locked Keychain is treated as temporary: the app keeps showing its last snapshot and retries, it never signs you out.
 
 ## Disclaimer
 
-PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Grok, and OpenRouter. It is not affiliated with the vendors nor endorsed by them.
+PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Grok, OpenCode, and OpenRouter. It is not affiliated with the vendors nor endorsed by them.
 
 ## Contributing
 

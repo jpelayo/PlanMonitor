@@ -95,15 +95,16 @@ struct HostStateTests {
     @Test func providerPersistenceOrderIsStable() {
         withDefaults { defaults in
             let providers = EnabledProviders(defaults: defaults)
+            providers.set(.opencode, enabled: true)
             providers.set(.claudeapi, enabled: true)
             providers.set(.openrouter, enabled: true)
             providers.set(.grok, enabled: true)
             providers.set(.codex, enabled: true)
 
-            // Declaration order, whatever the order of enabling — with Claude-API last.
+            // Declaration order, whatever the order of enabling — newest providers last.
             #expect(
                 defaults.stringArray(forKey: "enabledProviders")
-                    == ["claude", "codex", "grok", "openrouter", "claudeapi"]
+                    == ["claude", "codex", "grok", "openrouter", "claudeapi", "opencode"]
             )
         }
     }

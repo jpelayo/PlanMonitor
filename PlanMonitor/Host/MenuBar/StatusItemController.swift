@@ -227,7 +227,8 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             removeItem(for: provider)
         }
         // New status items are inserted at the left edge of the status area, so create in
-        // reverse order to end up with Claude, Codex, Grok, OpenRouter, Claude-API left to right.
+        // reverse order to end up with Claude, Codex, Grok, OpenRouter, Claude-API, OpenCode left
+        // to right.
         for provider in ProviderID.allCases.reversed() where enabledProviders.isEnabled(provider) {
             addItemIfNeeded(for: provider)
         }
