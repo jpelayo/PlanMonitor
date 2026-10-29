@@ -47,15 +47,13 @@ struct GrokLoginWebView: NSViewRepresentable {
         if let seedCookies, !context.coordinator.didPlantSeedCookies {
             context.coordinator.plantCookies(seedCookies, in: nsView) {
                 if let followUpURL {
-                    context.coordinator.lastFollowUpURL = followUpURL
-                    nsView.load(URLRequest(url: followUpURL))
+                    context.coordinator.loadFollowUp(followUpURL, in: nsView)
                 }
             }
             return
         }
         guard let followUpURL, context.coordinator.lastFollowUpURL != followUpURL else { return }
-        context.coordinator.lastFollowUpURL = followUpURL
-        nsView.load(URLRequest(url: followUpURL))
+        context.coordinator.loadFollowUp(followUpURL, in: nsView)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -73,6 +71,23 @@ struct GrokLoginWebView: NSViewRepresentable {
         private var didVisitTwoFactor = false
         private var urlObservation: NSKeyValueObservation?
         private var checkTimer: Timer?
+        /// Debug log only: the last stage line and cookie-name set written, so each is logged
+        /// when it changes rather than on every one-second check.
+        private var lastLoggedStage: String?
+        private var lastLoggedJar: String?
+        private var approvalWatchdog: Timer?
+        private var isApprovalDone = false
+        private var approvalReloads = 0
+        private var stalledURL: String?
+        private var stalledSince: Date?
+
+        /// x.ai's own page can move itself to the account page just after the approval page was
+        /// requested — a race, seen on another Mac on 2026-10-29 — leaving the approval out of
+        /// sight while the app polls for it. After this long on the account page with nothing
+        /// loading, the approval page is loaded again.
+        private static let approvalStallSeconds: TimeInterval = 5
+        /// Then the watchdog gives up, so a flow broken some other way can't loop.
+        private static let maxApprovalReloads = 3
 
         private let allowedDomains = [
             "grok.com",
@@ -109,6 +124,68 @@ struct GrokLoginWebView: NSViewRepresentable {
         deinit {
             urlObservation?.invalidate()
             checkTimer?.invalidate()
+            approvalWatchdog?.invalidate()
+        }
+
+        // MARK: Approval page
+
+        /// The only place the approval page is loaded, so the watchdog is always armed with it.
+        func loadFollowUp(_ url: URL, in webView: WKWebView) {
+            lastFollowUpURL = url
+            webView.load(URLRequest(url: url))
+            armApprovalWatchdog(webView)
+        }
+
+        /// Its own timer: `checkTimer` stops once the session is taken.
+        private func armApprovalWatchdog(_ webView: WKWebView) {
+            guard approvalWatchdog == nil, !isApprovalDone else { return }
+            LoginNetworkProbe.log("approval-watchdog armed")
+            approvalWatchdog = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self, weak webView] _ in
+                guard let self, let webView else { return }
+                self.checkApprovalProgress(webView)
+            }
+        }
+
+        private func checkApprovalProgress(_ webView: WKWebView) {
+            guard let followUp = lastFollowUpURL, let url = webView.url else { return }
+            let host = url.host?.lowercased() ?? ""
+            if host == "x.ai" || host.hasSuffix(".x.ai"), url.path.lowercased().hasPrefix("/oauth2/device/done") {
+                isApprovalDone = true
+                stopApprovalWatchdog()
+                LoginNetworkProbe.log("approval done — watchdog off")
+                return
+            }
+            // Any other page, or a page still loading, is the flow moving: the clock restarts.
+            guard isAccountHome(url), !webView.isLoading else {
+                stalledURL = nil
+                stalledSince = nil
+                return
+            }
+            let current = url.absoluteString
+            guard current == stalledURL, let since = stalledSince else {
+                stalledURL = current
+                stalledSince = Date()
+                return
+            }
+            guard Date().timeIntervalSince(since) >= Self.approvalStallSeconds else { return }
+            guard approvalReloads < Self.maxApprovalReloads else {
+                LoginNetworkProbe.log("approval-watchdog gave up after \(Self.maxApprovalReloads) reloads")
+                stopApprovalWatchdog()
+                return
+            }
+            approvalReloads += 1
+            stalledURL = nil
+            stalledSince = nil
+            LoginNetworkProbe.log(
+                "approval page replaced by \(LoginNetworkProbe.redacted(url)) for \(Int(Self.approvalStallSeconds)) s"
+                    + " — reloading (\(approvalReloads)/\(Self.maxApprovalReloads))"
+            )
+            webView.load(URLRequest(url: followUp))
+        }
+
+        private func stopApprovalWatchdog() {
+            approvalWatchdog?.invalidate()
+            approvalWatchdog = nil
         }
 
         func observeURL(webView: WKWebView) {
@@ -263,8 +340,11 @@ struct GrokLoginWebView: NSViewRepresentable {
         }
 
         /// Hosts allowed to perform the SSO cookie hop (`/set-cookie`): grok.com, x.ai and
-        /// their subdomains (accounts.x.ai, auth.x.ai, ...), taken from `allowedDomains`.
-        private let cookieHopDomains = ["grok.com", "x.ai"]
+        /// their subdomains (accounts.x.ai, auth.x.ai, ...), taken from `allowedDomains` — and
+        /// cursor.com, whose hop x.ai's cookie chain runs after the password since 2026-10-29.
+        /// Cancelling it stopped the chain before 2FA. Its cookies stay in this throwaway store:
+        /// `cookieHeader(from:)` keeps only grok.com and x.ai ones.
+        private let cookieHopDomains = ["grok.com", "x.ai", "cursor.com"]
 
         private func isCookieHop(_ url: URL) -> Bool {
             guard url.scheme?.lowercased() == "https", let host = url.host?.lowercased() else { return false }
@@ -288,7 +368,12 @@ struct GrokLoginWebView: NSViewRepresentable {
         private func checkIfAuthenticated(webView: WKWebView, url: URL?) {
             guard !hasExtractedSession else { return }
             let stage = loginStage(for: url)
-            LoginNetworkProbe.log("stage=\(stage) url=\(LoginNetworkProbe.redacted(url))")
+            // Once per change, not once a second.
+            let stageLine = "stage=\(stage) url=\(LoginNetworkProbe.redacted(url))"
+            if stageLine != lastLoggedStage {
+                lastLoggedStage = stageLine
+                LoginNetworkProbe.log(stageLine)
+            }
             switch stage {
             case .signIn, .identityProvider:
                 didVisitAuthPage = true
@@ -318,9 +403,13 @@ struct GrokLoginWebView: NSViewRepresentable {
                     return
                 }
                 webView.evaluateJavaScript(Self.accountHomeProbeScript) { accountResult, _ in
-                    let onAccountHome = (accountResult as? Bool) ?? false
                     let url = webView.url
                     let stage = self.loginStage(for: url)
+                    // The sign-in page itself reads "tu cuenta" now (2026-10-29): before 2FA that
+                    // text on a sign-in page proves nothing, and a hop is never a finish.
+                    let onAccountHome = ((accountResult as? Bool) ?? false)
+                        && stage != .cookieHop
+                        && (stage != .signIn || self.didVisitTwoFactor)
                     if onAccountHome {
                         LoginNetworkProbe.log("stage=complete source=dom-account")
                     }
@@ -344,7 +433,7 @@ struct GrokLoginWebView: NSViewRepresentable {
 
         private func loginStage(for url: URL?) -> LoginStage {
             guard let url else { return .unknown }
-            if isCookieHop(url) || isAuthCookieHost(url) {
+            if isCookieHop(url) || isAuthCookieHost(url) || isCookieChain(url) {
                 return .cookieHop
             }
             if isTwoFactorPage(url) {
@@ -373,6 +462,15 @@ struct GrokLoginWebView: NSViewRepresentable {
             if isSignInPage(url) || isTwoFactorPage(url) { return false }
             let path = url.path.lowercased()
             return path == "/" || path.isEmpty || path.hasPrefix("/account") || path.hasPrefix("/settings")
+        }
+
+        /// `accounts.x.ai/cookie-chain`: the page x.ai shows after the password (since
+        /// 2026-10-29), walking the session through each sibling site's `/set-cookie`. Its text
+        /// reads like the account page, but the session is not finished there.
+        private func isCookieChain(_ url: URL) -> Bool {
+            let host = url.host?.lowercased() ?? ""
+            guard host == "x.ai" || host.hasSuffix(".x.ai") else { return false }
+            return url.path.lowercased().hasPrefix("/cookie-chain")
         }
 
         private func isAuthCookieHost(_ url: URL) -> Bool {
@@ -443,6 +541,12 @@ struct GrokLoginWebView: NSViewRepresentable {
             guard !hasExtractedSession else { return }
             webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
                 guard let self, !self.hasExtractedSession else { return }
+                // Which hop set which session: names by domain, whenever they change.
+                let jar = LoginNetworkProbe.cookieNames(cookies)
+                if jar != self.lastLoggedJar {
+                    self.lastLoggedJar = jar
+                    LoginNetworkProbe.log("grab attempt, cookie names by domain: \(jar)")
+                }
                 guard let cookieString = GrokWebViewCookieManager.cookieHeader(from: cookies) else { return }
                 self.hasExtractedSession = true
                 self.checkTimer?.invalidate()
@@ -502,9 +606,10 @@ private enum LoginNetworkProbe {
     })();
     """
 
-    /// `line` must already be redacted (see `redacted(_:)` / `describe(_:)`).
+    /// `line` must already be redacted (see `redacted(_:)` / `describe(_:)`). Public so `log
+    /// stream` can follow a supervised sign-in, as Claude-API's diagnostics do; Debug builds only.
     static func log(_ line: String) {
-        logger.notice("\(line, privacy: .private)")
+        logger.notice("\(line, privacy: .public)")
         Task { @MainActor in
             GrokLoginNetworkLogStore.shared.append(line)
         }
@@ -523,19 +628,37 @@ private enum LoginNetworkProbe {
             .map { "\($0.key)=\($0.value)" }
             .joined(separator: " ")
     }
+
+    /// Cookie names grouped by domain, sorted. Never a value.
+    static func cookieNames(_ cookies: [HTTPCookie]) -> String {
+        let byDomain: [String: [HTTPCookie]] = Dictionary(grouping: cookies) { $0.domain.lowercased() }
+        let rows: [String] = byDomain.keys.sorted().map { (domain: String) -> String in
+            let names: [String] = Set((byDomain[domain] ?? []).map(\.name)).sorted()
+            return "\(domain) [\(names.joined(separator: ", "))]"
+        }
+        return rows.isEmpty ? "empty" : rows.joined(separator: " · ")
+    }
 #else
     static let script = ""
     static func log(_ line: String) {}
     static func describe(_ body: Any) -> String { "" }
+    static func cookieNames(_ cookies: [HTTPCookie]) -> String { "" }
 #endif
 
     /// Scheme, host and path only: OIDC `code=` / `state=` and any other query or fragment
-    /// values never reach a log.
+    /// values never reach a log, and a path segment long enough to be a one-time token is cut
+    /// to its first four characters.
     static func redacted(_ url: URL?) -> String {
         guard let url else { return "nil" }
+        let path = url.path
+            .split(separator: "/", omittingEmptySubsequences: false)
+            .map { (segment: Substring) -> String in
+                segment.count >= 20 ? String(segment.prefix(4)) + "…" : String(segment)
+            }
+            .joined(separator: "/")
         guard let scheme = url.scheme, let host = url.host else {
-            return url.scheme.map { "\($0):\(url.path)" } ?? url.path
+            return url.scheme.map { "\($0):\(path)" } ?? path
         }
-        return "\(scheme)://\(host)\(url.path)"
+        return "\(scheme)://\(host)\(path)"
     }
 }

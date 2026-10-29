@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 nonisolated enum GrokAPIError: Error, LocalizedError {
     case unauthorized
@@ -79,7 +80,14 @@ actor GrokAPIClient {
 
     func fetchIdentity() async throws -> String {
         let sessionURL = URL(string: "https://accounts.x.ai/api/auth/session")!
-        let data = try await get(sessionURL)
+        let data: Data
+        do {
+            data = try await get(sessionURL)
+        } catch {
+            GrokSessionDiagnostics.log("failed: \(error)")
+            throw error
+        }
+        GrokSessionDiagnostics.log(GrokSessionDiagnostics.describe(data))
         if let identity = GrokIdentityParser.identity(from: data) {
             return identity
         }
@@ -197,5 +205,45 @@ nonisolated enum GrokIdentityParser {
             }
         }
         return nil
+    }
+}
+
+/// **Debug builds only.** What `accounts.x.ai/api/auth/session` answered when a sign-in is
+/// checked, in the same `LoginNetwork` stream as the login window, so a supervised sign-in can
+/// tell "the session still waits for 2FA" from "x.ai changed the answer's shape". Keys and
+/// yes/no only — never a value or an email. In Release the argument is never evaluated.
+nonisolated private enum GrokSessionDiagnostics {
+    #if DEBUG
+    private static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "com.infinitecontext.plantracker",
+        category: "LoginNetwork"
+    )
+    #endif
+
+    static func log(_ message: @autoclosure () -> String) {
+        #if DEBUG
+        let text = message()
+        logger.notice("session-check \(text, privacy: .public)")
+        #endif
+    }
+
+    static func describe(_ data: Data) -> String {
+        guard let object = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]) else {
+            return "HTTP 2xx, not JSON (\(data.count) bytes)"
+        }
+        guard let dictionary = object as? [String: Any] else {
+            return object is NSNull ? "HTTP 2xx, null" : "HTTP 2xx, not an object"
+        }
+        let nested: [String] = ["user", "session"].compactMap { (key: String) -> String? in
+            guard let value = dictionary[key] else { return nil }
+            if let inner = value as? [String: Any] {
+                return "\(key) keys \(inner.keys.sorted())"
+            }
+            return "\(key) present (\(value is NSNull ? "null" : "not an object"))"
+        }
+        let identityFound = GrokIdentityParser.identity(from: data) != nil
+        return "HTTP 2xx, keys \(dictionary.keys.sorted())"
+            + (nested.isEmpty ? "; no user or session" : "; " + nested.joined(separator: "; "))
+            + "; identity found: \(identityFound ? "yes" : "no")"
     }
 }
