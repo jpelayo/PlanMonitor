@@ -158,6 +158,7 @@
 "weekly" = "semanal";
 /* Aplicación unificada */
 "Providers" = "Proveedores";
+"Provider" = "Proveedor";
 "At least one provider must remain enabled." = "Al menos un proveedor debe permanecer activado.";
 "Sign in to Codex" = "Iniciar sesión en Codex";
 "Track your Codex usage from the menu bar" = "Controla tu uso de ChatGPT / Codex desde la barra de menús";

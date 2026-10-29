@@ -92,17 +92,39 @@ struct ClaudeLoginWebView: NSViewRepresentable {
             }
         }
 
+        /// The hosts the sign-in may load, from claude.ai's own `frame-src`, sign-in related only.
+        /// `decidePolicyFor` fires for iframes too, and claude.ai's login sits behind Cloudflare's
+        /// browser check (2026-10-29): with its frame cancelled the check never finishes and the
+        /// page stops at "could not verify your browser". Exact host or a subdomain of one.
         private let allowedDomains = [
-            "claude.ai"
+            "claude.ai",
+            // Cloudflare's browser check: every *.cloudflare.com, challenges.cloudflare.com
+            // included, and its analytics beacon.
+            "cloudflare.com",
+            "cloudflareinsights.com",
+            // The fallback captcha.
+            "hcaptcha.com",
+            // "Continue with Google".
+            "google.com",
+            "gstatic.com"
         ]
+        private var loggedBlockedHosts: Set<String> = []
 
         func webView(
             _ webView: WKWebView,
             decidePolicyFor navigationAction: WKNavigationAction,
             decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
         ) {
-            guard let url = navigationAction.request.url,
-                  let host = url.host?.lowercased() else {
+            guard let url = navigationAction.request.url else {
+                decisionHandler(.cancel)
+                return
+            }
+            // Blank and inline frames load nothing from the network; the check creates them.
+            if ["about", "blob", "data"].contains(url.scheme?.lowercased() ?? "") {
+                decisionHandler(.allow)
+                return
+            }
+            guard let host = url.host?.lowercased() else {
                 decisionHandler(.cancel)
                 return
             }
@@ -114,6 +136,11 @@ struct ClaudeLoginWebView: NSViewRepresentable {
             if isAllowed {
                 decisionHandler(.allow)
             } else {
+                // Once per host, never a path or query: a host claude.ai adds later shows up here
+                // instead of failing silently.
+                if loggedBlockedHosts.insert(host).inserted {
+                    AppRuntimeState.recordBreadcrumb("provider-claude-login-blocked-\(host)")
+                }
                 decisionHandler(.cancel)
             }
         }

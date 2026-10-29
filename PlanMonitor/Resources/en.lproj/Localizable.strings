@@ -155,6 +155,7 @@
 "weekly" = "weekly";
 /* Unified app */
 "Providers" = "Providers";
+"Provider" = "Provider";
 "At least one provider must remain enabled." = "At least one provider must remain enabled.";
 "Sign in to Codex" = "Sign in to Codex";
 "Track your Codex usage from the menu bar" = "Track your ChatGPT / Codex usage from the menu bar";

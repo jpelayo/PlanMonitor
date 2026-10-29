@@ -95,18 +95,18 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // One section, one provider at a time: the enabled providers are tabs.
+            // One section, one provider at a time: the enabled providers are tabs, or a drop-down
+            // when the tabs are wider than the row — six were, and the overflow ate the Form's
+            // insets. Measured, not counted, so a new provider or a longer name falls back alone.
             Section {
                 if enabledProviderList.count > 1 {
-                    Picker(selection: $selectedProvider) {
-                        ForEach(enabledProviderList) { provider in
-                            Text(provider.displayName).tag(provider)
-                        }
-                    } label: {
-                        EmptyView()
+                    ViewThatFits(in: .horizontal) {
+                        providerPicker
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                        providerPicker
+                            .pickerStyle(.menu)
                     }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
                 }
                 switch selectedProvider {
                 case .claude: claudeControls
@@ -146,6 +146,14 @@ struct SettingsView: View {
         .onAppear {
             NSApp.activate(ignoringOtherApps: true)
             preferences.refreshLoginItemState()
+        }
+    }
+
+    private var providerPicker: some View {
+        Picker(String(localized: "Provider"), selection: $selectedProvider) {
+            ForEach(enabledProviderList) { provider in
+                Text(provider.displayName).tag(provider)
+            }
         }
     }
 
