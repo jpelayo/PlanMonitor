@@ -20,13 +20,19 @@ enum ClaudePlatformFixtures {
         try ClaudePlatformBilling.decode(type, from: Data(json.utf8))
     }
 
+    /// When the captures were taken. Assembly drops tranches already past their expiry, so every
+    /// test assembles at this fixed moment: the captured grant expires 2026-11-04, and on the real
+    /// clock the suite would start failing that day.
+    static let capturedAt = date("2026-10-09T12:00:00Z")
+
     /// The captured account, assembled exactly as a poll assembles it.
     static func capturedSnapshot() throws -> ClaudePlatformSnapshot {
         ClaudePlatformBilling.assemble(
             credits: try decode(ClaudePlatformPrepaidCreditsResponse.self, prepaidCredits),
             spend: try decode(ClaudePlatformCurrentSpendResponse.self, currentSpend),
             limits: try decode(ClaudePlatformSpendLimitsResponse.self, spendLimits),
-            autoRecharge: try decode(ClaudePlatformAutoRechargeResponse.self, autoRecharge)
+            autoRecharge: try decode(ClaudePlatformAutoRechargeResponse.self, autoRecharge),
+            now: capturedAt
         )
     }
 

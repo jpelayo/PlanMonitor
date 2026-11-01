@@ -281,13 +281,14 @@
 "Reset menu bar positions" = "Reset menu bar positions";
 
 /* Claude-API — menu bar text */
-"Total consumed" = "Total consumed";
-"Total available minus consumed" = "Total available minus consumed";
-"Consumed / available" = "Consumed / available";
-"(Available − consumed) / available" = "(Available − consumed) / available";
-"Consumed / your limit" = "Consumed / your limit";
-"Your limit minus consumed" = "Your limit minus consumed";
-"(Your limit − consumed) / your limit" = "(Your limit − consumed) / your limit";
+"Credit left" = "Credit left";
+"Credit left / total credit" = "Credit left / total credit";
+"Credit used / total credit" = "Credit used / total credit";
+"Promotional credit left" = "Promotional credit left";
+"Prepaid credit left" = "Prepaid credit left";
+"Left to spend" = "Left to spend";
+"Left to spend / your limit" = "Left to spend / your limit";
+"Spend this month / your limit" = "Spend this month / your limit";
 
 /* Claude-API */
 "PlanMonitor for Claude-API" = "PlanMonitor for Claude-API";

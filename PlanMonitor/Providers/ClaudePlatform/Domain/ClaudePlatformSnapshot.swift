@@ -80,25 +80,26 @@ nonisolated struct ClaudePlatformSnapshot: Codable, Equatable, Sendable {
 
     // MARK: - Derived
 
-    /// What the menu-bar resolver needs, already in its own terms.
+    /// What the menu-bar resolver needs, already in its own terms. Credit comes from the balances,
+    /// never from a grant minus this month's spend (see `ClaudePlatformMenuBarDigits.Figures`).
     var figures: ClaudePlatformMenuBarDigits.Figures {
         ClaudePlatformMenuBarDigits.Figures(
-            available: totalAvailable,
-            consumed: spendUsed,
+            promoGranted: promoGranted,
+            promoLeft: promoRemaining,
+            prepaidLeft: prepaidRemaining,
+            spent: spendUsed,
             userLimit: pauseLimit,
+            pendingInvoice: pendingInvoice,
+            spendingStopsAtCredit: spendingStopsAtCredit,
             currency: currency,
             exponent: exponent
         )
     }
 
-    /// The menu bar's one sum of what is available: every promotional credit granted plus the
-    /// paid credit on the books (user decision, 2026-10-14). The console reports paid credit as its
-    /// current balance, not as the total ever bought, so that is the figure counted. Consumption is
-    /// the other sum, `spendUsed`, which resets monthly so available minus consumed returns to the
-    /// full amount — while the dropdown's promotional row keeps the grant's own balance and expiry.
-    var totalAvailable: Int? {
-        guard promoGranted != nil || prepaidRemaining != nil else { return nil }
-        return (promoGranted ?? 0) + (prepaidRemaining ?? 0)
+    /// A pre-paid account — nothing to invoice is reported — that is not topped up automatically.
+    /// Auto-payment the console did not report counts as off, so the bar never overstates money.
+    var spendingStopsAtCredit: Bool {
+        pendingInvoice == nil && autoRecharge?.isEnabled != true
     }
 
     /// Promotional credit consumed, as a fraction of the grant. Gauges show used, never remaining.

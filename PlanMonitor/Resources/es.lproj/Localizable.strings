@@ -281,13 +281,14 @@
 "Reset menu bar positions" = "Restablecer posiciones en la barra";
 
 /* Claude-API — texto de la barra de menús */
-"Total consumed" = "Total consumido";
-"Total available minus consumed" = "Total disponible menos consumido";
-"Consumed / available" = "Consumido / disponible";
-"(Available − consumed) / available" = "(Disponible − consumido) / disponible";
-"Consumed / your limit" = "Consumido / tu límite";
-"Your limit minus consumed" = "Tu límite menos consumido";
-"(Your limit − consumed) / your limit" = "(Tu límite − consumido) / tu límite";
+"Credit left" = "Crédito disponible";
+"Credit left / total credit" = "Crédito disponible / crédito total";
+"Credit used / total credit" = "Crédito usado / crédito total";
+"Promotional credit left" = "Crédito promocional disponible";
+"Prepaid credit left" = "Crédito prepagado disponible";
+"Left to spend" = "Disponible para gastar";
+"Left to spend / your limit" = "Disponible para gastar / tu límite";
+"Spend this month / your limit" = "Gasto de este mes / tu límite";
 
 /* Claude-API */
 "PlanMonitor for Claude-API" = "PlanMonitor para Claude-API";

@@ -43,7 +43,7 @@ struct ClaudePlatformBillingTests {
             ClaudePlatformPrepaidCreditsResponse.self,
             #"{"amount":19955,"currency":"USD","promo_tranches":[{"remaining_amount_minor_units":19954,"granted_amount_minor_units":20000,"currency":"USD"}]}"#
         )
-        let snapshot = ClaudePlatformBilling.assemble(credits: credits, spend: nil, limits: nil, autoRecharge: nil)
+        let snapshot = ClaudePlatformBilling.assemble(credits: credits, spend: nil, limits: nil, autoRecharge: nil, now: ClaudePlatformFixtures.capturedAt)
         #expect(snapshot.prepaidRemaining == nil)
     }
 
@@ -66,14 +66,15 @@ struct ClaudePlatformBillingTests {
         let enabled = try ClaudePlatformFixtures.decode(
             ClaudePlatformAutoRechargeResponse.self, #"{"status":"enabled","target_amount":2000,"threshold_amount":1000}"#
         )
-        #expect(ClaudePlatformBilling.assemble(credits: nil, spend: nil, limits: nil, autoRecharge: unknown).autoRecharge == nil)
-        #expect(ClaudePlatformBilling.assemble(credits: nil, spend: nil, limits: nil, autoRecharge: enabled).autoRecharge?.isEnabled == true)
+        let at = ClaudePlatformFixtures.capturedAt
+        #expect(ClaudePlatformBilling.assemble(credits: nil, spend: nil, limits: nil, autoRecharge: unknown, now: at).autoRecharge == nil)
+        #expect(ClaudePlatformBilling.assemble(credits: nil, spend: nil, limits: nil, autoRecharge: enabled, now: at).autoRecharge?.isEnabled == true)
     }
 
     // MARK: - Missing and odd figures
 
     @Test func nothingReportedIsEmptyNotZero() {
-        let snapshot = ClaudePlatformBilling.assemble(credits: nil, spend: nil, limits: nil, autoRecharge: nil)
+        let snapshot = ClaudePlatformBilling.assemble(credits: nil, spend: nil, limits: nil, autoRecharge: nil, now: ClaudePlatformFixtures.capturedAt)
         #expect(snapshot.isEmpty)
         #expect(snapshot.promoUsedFraction == nil)
         #expect(snapshot.spendUsedFraction == nil)
@@ -85,7 +86,7 @@ struct ClaudePlatformBillingTests {
             ClaudePlatformSpendLimitsResponse.self, #"{"spend_limits":[],"enforced_limit_usd":null}"#
         )
         let spend = try ClaudePlatformFixtures.decode(ClaudePlatformCurrentSpendResponse.self, ClaudePlatformFixtures.currentSpend)
-        let snapshot = ClaudePlatformBilling.assemble(credits: nil, spend: spend, limits: limits, autoRecharge: nil)
+        let snapshot = ClaudePlatformBilling.assemble(credits: nil, spend: spend, limits: limits, autoRecharge: nil, now: ClaudePlatformFixtures.capturedAt)
 
         #expect(snapshot.spendUsed == 46)
         #expect(snapshot.enforcedSpendLimit == nil)
@@ -98,7 +99,7 @@ struct ClaudePlatformBillingTests {
             ClaudePlatformPrepaidCreditsResponse.self,
             #"{"amount":100,"currency":"USD","promo_tranches":[{"remaining_amount_minor_units":50,"granted_amount_minor_units":100,"currency":"EUR"}]}"#
         )
-        let snapshot = ClaudePlatformBilling.assemble(credits: credits, spend: nil, limits: nil, autoRecharge: nil)
+        let snapshot = ClaudePlatformBilling.assemble(credits: credits, spend: nil, limits: nil, autoRecharge: nil, now: ClaudePlatformFixtures.capturedAt)
         #expect(snapshot.currencyMismatch)
     }
 
@@ -113,12 +114,45 @@ struct ClaudePlatformBillingTests {
             ]}
             """#
         )
-        let snapshot = ClaudePlatformBilling.assemble(credits: credits, spend: nil, limits: nil, autoRecharge: nil)
+        let snapshot = ClaudePlatformBilling.assemble(credits: credits, spend: nil, limits: nil, autoRecharge: nil, now: ClaudePlatformFixtures.capturedAt)
 
         #expect(snapshot.promoGranted == 25_000)
         #expect(snapshot.promoRemaining == 15_000)
         // The zero-grant tranche is not credit, so its earlier date does not count.
         #expect(snapshot.promoExpiresAt == ClaudePlatformFixtures.date("2026-11-15T00:00:00Z"))
+
+        // Once "Sooner" has expired, only "Later" is credit.
+        let later = ClaudePlatformBilling.assemble(
+            credits: credits, spend: nil, limits: nil, autoRecharge: nil,
+            now: ClaudePlatformFixtures.date("2026-11-20T00:00:00Z")
+        )
+        #expect(later.promoGranted == 20_000)
+        #expect(later.promoRemaining == 10_000)
+        #expect(later.promoExpiresAt == ClaudePlatformFixtures.date("2026-12-01T00:00:00Z"))
+    }
+
+    /// A grant past its expiry is not credit, whether or not the console still lists it.
+    @Test func anExpiredGrantIsNotCredit() throws {
+        let credits = try ClaudePlatformFixtures.decode(
+            ClaudePlatformPrepaidCreditsResponse.self, ClaudePlatformFixtures.prepaidCredits
+        )
+        func assembled(at iso: String) -> ClaudePlatformSnapshot {
+            ClaudePlatformBilling.assemble(
+                credits: credits, spend: nil, limits: nil, autoRecharge: nil,
+                now: ClaudePlatformFixtures.date(iso)
+            )
+        }
+
+        let before = assembled(at: "2026-11-03T23:59:59Z")
+        #expect(before.promoRemaining == 19_954)
+        #expect(before.figures.creditLeft == 19_954)
+
+        let after = assembled(at: "2026-11-04T00:00:01Z")
+        #expect(after.promoGranted == nil)
+        #expect(after.promoRemaining == nil)
+        // The prepaid balance is still reported, so credit is a real zero, not unknown.
+        #expect(after.figures.creditLeft == 0)
+        #expect(ClaudePlatformRingSource.promo.fill(for: after) == nil)
     }
 
     // MARK: - Money formatting
@@ -128,7 +162,7 @@ struct ClaudePlatformBillingTests {
             ClaudePlatformPrepaidCreditsResponse.self,
             #"{"amount":500,"currency":"jpy","balance":{"credits":{"amount_minor":500,"exponent":0}}}"#
         )
-        let snapshot = ClaudePlatformBilling.assemble(credits: credits, spend: nil, limits: nil, autoRecharge: nil)
+        let snapshot = ClaudePlatformBilling.assemble(credits: credits, spend: nil, limits: nil, autoRecharge: nil, now: ClaudePlatformFixtures.capturedAt)
 
         #expect(snapshot.currency == "JPY")
         #expect(snapshot.exponent == 0)
@@ -149,13 +183,13 @@ struct ClaudePlatformBillingTests {
             ClaudePlatformPrepaidCreditsResponse.self,
             #"{"promo_tranches":[{"remaining_amount_minor_units":100,"granted_amount_minor_units":200,"currency":"eur"}]}"#
         )
-        #expect(ClaudePlatformBilling.assemble(credits: fromTranche, spend: nil, limits: nil, autoRecharge: nil).currency == "EUR")
+        #expect(ClaudePlatformBilling.assemble(credits: fromTranche, spend: nil, limits: nil, autoRecharge: nil, now: ClaudePlatformFixtures.capturedAt).currency == "EUR")
 
         let none = try ClaudePlatformFixtures.decode(
             ClaudePlatformPrepaidCreditsResponse.self,
             #"{"promo_tranches":[{"remaining_amount_minor_units":100,"granted_amount_minor_units":200}]}"#
         )
-        let snapshot = ClaudePlatformBilling.assemble(credits: none, spend: nil, limits: nil, autoRecharge: nil)
+        let snapshot = ClaudePlatformBilling.assemble(credits: none, spend: nil, limits: nil, autoRecharge: nil, now: ClaudePlatformFixtures.capturedAt)
         #expect(snapshot.currency == nil)
         #expect(snapshot.format(100, style: .codeAfter) == "1.00")
         #expect(snapshot.format(100, style: .signBefore) == "1.00")
@@ -206,28 +240,71 @@ struct ClaudePlatformBillingTests {
         #expect(ClaudePlatformRingSource.promo.fill(for: half) == 0.5)
     }
 
-    @Test func theMenuBarReadsTheCapturedAccount() throws {
-        let figures = try ClaudePlatformFixtures.capturedSnapshot().figures
-        // One sum of available (the $200 grant + $0 paid), one of consumed (this month's $0.46).
-        #expect(figures.available == 20_000)
-        #expect(figures.consumed == 46)
-        #expect(figures.userLimit == 20_000)
-        #expect(ClaudePlatformMenuBarDigits.resolve(display: .left, figures: figures, style: .signAfter).text == "199$")
-        #expect(ClaudePlatformMenuBarDigits.resolve(display: .consumed, figures: figures, style: .signAfter).text == "0$")
-        #expect(ClaudePlatformMenuBarDigits.resolve(display: .leftOfUserLimit, figures: figures, style: .signAfter).text == "199/200$")
+    private func bar(_ display: ClaudePlatformMenuBarDisplay, _ snapshot: ClaudePlatformSnapshot) -> String? {
+        ClaudePlatformMenuBarDigits.resolve(display: display, figures: snapshot.figures, style: .signAfter).text
     }
 
-    /// Paid credit joins the one sum of available; neither half reported means no sum at all.
-    @Test func totalAvailableIsPromotionalPlusPaidCredit() throws {
+    @Test func theMenuBarReadsTheCapturedAccount() throws {
+        let snapshot = try ClaudePlatformFixtures.capturedSnapshot()
+        let figures = snapshot.figures
+        // The balances themselves: $199.54 of the $200 grant left, $0 paid; this month's $0.46 spent.
+        #expect(figures.creditLeft == 19_954)
+        #expect(figures.creditTotal == 20_000)
+        #expect(figures.creditUsed == 46)
+        #expect(figures.spent == 46)
+        #expect(figures.userLimit == 20_000)
+        // Pre-paid, auto-payment off.
+        #expect(figures.spendingStopsAtCredit)
+        #expect(bar(.left, snapshot) == "199$")
+        #expect(bar(.consumedOfAvailable, snapshot) == "0/200$")
+        #expect(bar(.consumed, snapshot) == "0$")
+        #expect(bar(.leftOfUserLimit, snapshot) == "199/200$")
+    }
+
+    /// The user's account on 2026-11-01: $168.13 of the grant used in October, $0.02 spent in
+    /// November. Grant minus this month's spend read 199$; the credit held is $31.87.
+    @Test func creditUsedInEarlierMonthsIsNotGivenBack() throws {
+        var snapshot = try ClaudePlatformFixtures.capturedSnapshot()
+        snapshot.promoRemaining = 3_187
+        snapshot.spendUsed = 2
+        #expect(bar(.left, snapshot) == "31$")
+        #expect(bar(.consumedOfAvailable, snapshot) == "168/200$")
+        // The default: room under the $200 limit, capped at the credit a pre-paid account holds.
+        #expect(bar(.leftUnderUserLimit, snapshot) == "31$")
+    }
+
+    /// Credit is the balances: promotional left plus prepaid, against the grant plus prepaid.
+    /// Neither half reported means no credit figure at all.
+    @Test func creditIsPromotionalPlusPaidBalance() throws {
         var snapshot = try ClaudePlatformFixtures.capturedSnapshot()
         snapshot.prepaidRemaining = 5_000
-        #expect(snapshot.totalAvailable == 25_000)
+        #expect(snapshot.figures.creditLeft == 24_954)
+        #expect(snapshot.figures.creditTotal == 25_000)
+        #expect(snapshot.figures.creditUsed == 46)
 
         snapshot.promoGranted = nil
         snapshot.promoRemaining = nil
-        #expect(snapshot.totalAvailable == 5_000)
+        #expect(snapshot.figures.creditLeft == 5_000)
+        #expect(snapshot.figures.creditTotal == 5_000)
 
         snapshot.prepaidRemaining = nil
-        #expect(snapshot.totalAvailable == nil)
+        #expect(snapshot.figures.creditLeft == nil)
+        #expect(snapshot.figures.creditTotal == nil)
+    }
+
+    /// Only a pre-paid account that is not topped up automatically stops at its credit.
+    @Test func spendingStopsAtCreditOnlyWithoutInvoicingOrAutoPayment() {
+        var snapshot = ClaudePlatformSnapshot.empty
+        // Auto-payment not reported counts as off.
+        #expect(snapshot.spendingStopsAtCredit)
+
+        snapshot.autoRecharge = .init(isEnabled: true, targetAmount: nil, thresholdAmount: nil)
+        #expect(!snapshot.spendingStopsAtCredit)
+
+        snapshot.autoRecharge = .init(isEnabled: false, targetAmount: nil, thresholdAmount: nil)
+        #expect(snapshot.spendingStopsAtCredit)
+
+        snapshot.pendingInvoice = 0
+        #expect(!snapshot.spendingStopsAtCredit)
     }
 }

@@ -89,13 +89,16 @@ nonisolated enum ClaudePlatformBilling {
         try decoder().decode(type, from: data)
     }
 
+    /// `now` is the poll's own time: a promotional tranche already past its expiry is not credit,
+    /// whether or not the console still lists it.
     static func assemble(
         credits: ClaudePlatformPrepaidCreditsResponse?,
         spend: ClaudePlatformCurrentSpendResponse?,
         limits: ClaudePlatformSpendLimitsResponse?,
-        autoRecharge: ClaudePlatformAutoRechargeResponse?
+        autoRecharge: ClaudePlatformAutoRechargeResponse?,
+        now: Date = Date()
     ) -> ClaudePlatformSnapshot {
-        let promo = promoSummary(credits?.promoTranches)
+        let promo = promoSummary(credits?.promoTranches, now: now)
         // The account's own currency, else the one its grants name — never an assumed USD. With
         // neither, amounts are shown bare.
         let currency = normalizedCurrency(credits?.currency) ?? promo.currencies.sorted().first
@@ -134,10 +137,15 @@ nonisolated enum ClaudePlatformBilling {
     }
 
     /// Summed across tranches, as `ClaudeUsagePollingService.creditSummary` does, and never mixed
-    /// with the independent spend counter. A tranche with no grant is not credit.
-    private static func promoSummary(_ tranches: [ClaudePlatformPrepaidCreditsResponse.Tranche]?) -> PromoSummary {
+    /// with the independent spend counter. A tranche with no grant is not credit, and neither is
+    /// one already past its expiry; one with no expiry date counts.
+    private static func promoSummary(_ tranches: [ClaudePlatformPrepaidCreditsResponse.Tranche]?, now: Date) -> PromoSummary {
         var summary = PromoSummary()
-        let valid = (tranches ?? []).filter { ($0.grantedAmountMinorUnits ?? 0) > 0 }
+        let valid = (tranches ?? []).filter { tranche in
+            guard (tranche.grantedAmountMinorUnits ?? 0) > 0 else { return false }
+            guard let expiry = tranche.expiresAt.flatMap(parseDate) else { return true }
+            return expiry > now
+        }
         guard !valid.isEmpty else { return summary }
 
         var granted = 0
