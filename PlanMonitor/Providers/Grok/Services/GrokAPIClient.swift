@@ -1,5 +1,4 @@
 import Foundation
-import os
 
 nonisolated enum GrokAPIError: Error, LocalizedError {
     case unauthorized
@@ -10,7 +9,6 @@ nonisolated enum GrokAPIError: Error, LocalizedError {
     case invalidPayload(String)
     case noWeeklyUsage
     case unsupportedPrincipal
-    case noSessionCookies
     case noAccessToken
 
     var errorDescription: String? {
@@ -31,17 +29,16 @@ nonisolated enum GrokAPIError: Error, LocalizedError {
             String(localized: "Weekly SuperGrok usage is not available for this account.")
         case .unsupportedPrincipal:
             String(localized: "Team Grok accounts cannot show personal weekly usage yet.")
-        case .noSessionCookies:
-            String(localized: "Not authenticated. Please sign in.")
         case .noAccessToken:
             String(localized: "Grok usage API is not connected. Sign in again.")
         }
     }
 }
 
+/// Usage and plan, both read with the OAuth access token. No cookies: the token alone reaches
+/// everything the app shows (verified live, 2026-11-06).
 actor GrokAPIClient {
     private let session: URLSession
-    private var sessionCookies: String?
     private var accessToken: String?
     init(session: URLSession? = nil) {
         if let session {
@@ -65,36 +62,8 @@ actor GrokAPIClient {
         }
     }
 
-    func setSessionCookies(_ cookies: String) {
-        sessionCookies = cookies
-    }
-
-    func clearSessionCookies() {
-        sessionCookies = nil
-        accessToken = nil
-    }
-
     func setAccessToken(_ token: String?) {
         accessToken = token
-    }
-
-    func fetchIdentity() async throws -> String {
-        let sessionURL = URL(string: "https://accounts.x.ai/api/auth/session")!
-        let data: Data
-        do {
-            data = try await get(sessionURL)
-        } catch {
-            GrokSessionDiagnostics.log("failed: \(error)")
-            throw error
-        }
-        GrokSessionDiagnostics.log(GrokSessionDiagnostics.describe(data))
-        if let identity = GrokIdentityParser.identity(from: data) {
-            return identity
-        }
-        if GrokIdentityParser.hasActiveSession(data) {
-            return String(localized: "Signed in")
-        }
-        throw GrokAPIError.unauthorized
     }
 
     func fetchWeeklyUsage(planDisplayName: String? = nil) async throws -> GrokUsageData {
@@ -120,20 +89,13 @@ actor GrokAPIClient {
     }
 
     private func get(_ url: URL) async throws -> Data {
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        if let accessToken, url.host?.contains("cli-chat-proxy.grok.com") == true {
-            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
-            request.setValue("xai-grok-cli", forHTTPHeaderField: "x-xai-token-auth")
-        } else if let sessionCookies, !sessionCookies.isEmpty {
-            request.setValue(sessionCookies, forHTTPHeaderField: "Cookie")
-        } else {
+        guard let accessToken else {
             throw GrokAPIError.noAccessToken
         }
-        if let host = url.host, host.contains("accounts.x.ai") {
-            request.setValue("https://accounts.x.ai", forHTTPHeaderField: "Origin")
-            request.setValue("https://accounts.x.ai/", forHTTPHeaderField: "Referer")
-        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("xai-grok-cli", forHTTPHeaderField: "x-xai-token-auth")
         let data: Data
         let response: URLResponse
         do {
@@ -163,18 +125,6 @@ actor GrokAPIClient {
 }
 
 nonisolated enum GrokIdentityParser {
-    static func hasActiveSession(_ data: Data) -> Bool {
-        guard let object = try? JSONSerialization.jsonObject(with: data) else { return false }
-        if object is NSNull { return false }
-        if let dictionary = object as? [String: Any] {
-            if dictionary.isEmpty { return false }
-            if dictionary["user"] != nil || dictionary["session"] != nil {
-                return true
-            }
-        }
-        return identity(from: data) != nil
-    }
-
     static func identity(from data: Data) -> String? {
         guard let object = try? JSONSerialization.jsonObject(with: data) else { return nil }
         if let email = firstString(named: ["email", "emailAddress", "user_email"], in: object), email.contains("@") {
@@ -205,45 +155,5 @@ nonisolated enum GrokIdentityParser {
             }
         }
         return nil
-    }
-}
-
-/// **Debug builds only.** What `accounts.x.ai/api/auth/session` answered when a sign-in is
-/// checked, in the same `LoginNetwork` stream as the login window, so a supervised sign-in can
-/// tell "the session still waits for 2FA" from "x.ai changed the answer's shape". Keys and
-/// yes/no only — never a value or an email. In Release the argument is never evaluated.
-nonisolated private enum GrokSessionDiagnostics {
-    #if DEBUG
-    private static let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "com.infinitecontext.plantracker",
-        category: "LoginNetwork"
-    )
-    #endif
-
-    static func log(_ message: @autoclosure () -> String) {
-        #if DEBUG
-        let text = message()
-        logger.notice("session-check \(text, privacy: .public)")
-        #endif
-    }
-
-    static func describe(_ data: Data) -> String {
-        guard let object = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]) else {
-            return "HTTP 2xx, not JSON (\(data.count) bytes)"
-        }
-        guard let dictionary = object as? [String: Any] else {
-            return object is NSNull ? "HTTP 2xx, null" : "HTTP 2xx, not an object"
-        }
-        let nested: [String] = ["user", "session"].compactMap { (key: String) -> String? in
-            guard let value = dictionary[key] else { return nil }
-            if let inner = value as? [String: Any] {
-                return "\(key) keys \(inner.keys.sorted())"
-            }
-            return "\(key) present (\(value is NSNull ? "null" : "not an object"))"
-        }
-        let identityFound = GrokIdentityParser.identity(from: data) != nil
-        return "HTTP 2xx, keys \(dictionary.keys.sorted())"
-            + (nested.isEmpty ? "; no user or session" : "; " + nested.joined(separator: "; "))
-            + "; identity found: \(identityFound ? "yes" : "no")"
     }
 }

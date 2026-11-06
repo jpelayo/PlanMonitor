@@ -78,7 +78,7 @@ final class GrokUsageViewModel {
         authState = .restoring
         AppRuntimeState.recordBreadcrumb("provider-grok-check-authentication")
 
-        let restored: (email: String?, hasUsageToken: Bool)
+        let restoredEmail: String?
         switch await authService.restoreStoredSession() {
         case .absent:
             snapshotStore.clear()
@@ -95,19 +95,12 @@ final class GrokUsageViewModel {
             isLoading = false
             scheduleCredentialRetry()
             return
-        case .restored(let email, let hasUsageToken):
-            restored = (email, hasUsageToken)
+        case .restored(let email):
+            restoredEmail = email
         }
 
         AppRuntimeState.recordBreadcrumb("provider-grok-auth-restored-keychain")
-        let email: String
-        if let restoredEmail = restored.email {
-            email = restoredEmail
-        } else if let validated = try? await authService.validateSession() {
-            email = validated
-        } else {
-            email = String(localized: "Signed in")
-        }
+        let email = restoredEmail ?? String(localized: "Signed in")
         authState = .authenticated(
             AccountIdentity(
                 email: email,
@@ -119,11 +112,7 @@ final class GrokUsageViewModel {
         restorePersistedSnapshot()
         errorMessage = nil
         isLoading = false
-        if restored.hasUsageToken {
-            await startPolling()
-        } else {
-            needsUsageAuthorization = true
-        }
+        await startPolling()
     }
 
     private func scheduleCredentialRetry() {
@@ -132,37 +121,6 @@ final class GrokUsageViewModel {
             try? await Task.sleep(for: .seconds(credentialRetryDelay))
             guard !Task.isCancelled else { return }
             await self?.checkAuthentication()
-        }
-    }
-
-    func handleLoginSuccess(sessionCookies: String) async -> Bool {
-        isLoading = true
-        authState = .importing
-        guard GrokWebViewCookieManager.cookieHeaderContainsSession(sessionCookies) else {
-            authState = .unauthenticated
-            isLoading = false
-            return false
-        }
-        do {
-            try await authService.saveSessionCookies(sessionCookies)
-            let email = try await authService.validateSession()
-            isDemoMode = false
-            authState = .authenticated(
-                AccountIdentity(
-                    email: email,
-                    displayName: email,
-                    principalType: "User",
-                    isPersonalAccount: true
-                )
-            )
-            errorMessage = nil
-            isLoading = false
-            AppRuntimeState.recordBreadcrumb("provider-grok-login-success")
-            return true
-        } catch {
-            needsUsageAuthorization = true
-            isLoading = false
-            return false
         }
     }
 
@@ -177,10 +135,7 @@ final class GrokUsageViewModel {
         guard let authorization = pendingDeviceAuthorization else {
             throw GrokOIDCError.invalidResponse
         }
-        let credentials = try await authService.completeDeviceAuthorization(
-            authorization,
-            email: authState.email
-        )
+        let credentials = try await authService.completeDeviceAuthorization(authorization)
         pendingDeviceAuthorization = nil
         pendingUserCode = nil
         needsUsageAuthorization = false
@@ -191,8 +146,10 @@ final class GrokUsageViewModel {
         await startPolling()
     }
 
-    func storedCookies() async -> String? {
-        await authService.storedCookies()
+    /// The sign-in window closed, or the approval failed: the letters no longer mean anything.
+    func cancelDeviceAuthorization() {
+        pendingDeviceAuthorization = nil
+        pendingUserCode = nil
     }
 
     func refreshUsage() async {
@@ -335,10 +292,6 @@ final class GrokUsageViewModel {
     private func handleError(_ error: Error) {
         if let apiError = error as? GrokAPIError {
             switch apiError {
-            case .noSessionCookies:
-                authState = .unauthenticated
-                errorMessage = nil
-                return
             case .unauthorized, .noAccessToken:
                 needsUsageAuthorization = true
                 return

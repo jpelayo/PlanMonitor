@@ -8,6 +8,7 @@ nonisolated enum GrokOIDCError: Error, LocalizedError {
     case expired
     case denied
     case authorizationPending
+    case slowDown
 
     var errorDescription: String? {
         switch self {
@@ -23,7 +24,7 @@ nonisolated enum GrokOIDCError: Error, LocalizedError {
             String(localized: "Grok approval timed out. Sign in again.")
         case .denied:
             String(localized: "Grok access was denied.")
-        case .authorizationPending:
+        case .authorizationPending, .slowDown:
             String(localized: "Waiting for Grok approval.")
         }
     }
@@ -64,17 +65,11 @@ actor GrokOIDCClient {
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let body = [
+        request.httpBody = formBody([
             "grant_type": "refresh_token",
             "client_id": credentials.clientID,
             "refresh_token": credentials.refreshToken
-        ]
-        request.httpBody = body
-            .map { key, value in
-                "\(key)=\(value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value)"
-            }
-            .joined(separator: "&")
-            .data(using: .utf8)
+        ])
 
         let data: Data
         let response: URLResponse
@@ -145,26 +140,29 @@ actor GrokOIDCClient {
         )
     }
 
+    /// Waits for the user to sign in and approve, which can take minutes. Only "not yet", "slower"
+    /// and a network blip keep it going; anything else x.ai says ends it, so the window can report
+    /// a failure instead of spinning until the code expires. Cancelling the task stops it.
     func pollDeviceAuthorization(
         _ authorization: GrokDeviceAuthorization,
-        email: String?,
-        now: Date = Date()
+        sleep: @Sendable (TimeInterval) async throws -> Void = { try await Task.sleep(for: .seconds($0)) }
     ) async throws -> GrokCredentials {
         var interval = authorization.interval
         while Date() < authorization.expiresAt {
+            try Task.checkCancellation()
             do {
-                var credentials = try await exchangeDeviceCode(authorization.deviceCode, now: now)
-                credentials.email = email ?? credentials.email
-                if credentials.email == nil {
-                    credentials.email = try? await fetchEmail(accessToken: credentials.accessToken)
-                }
+                var credentials = try await exchangeDeviceCode(authorization.deviceCode, now: Date())
+                // Always asked, never carried over: the approval may be for a different account.
+                credentials.email = try? await fetchEmail(accessToken: credentials.accessToken)
                 return credentials
             } catch GrokOIDCError.authorizationPending {
-                try? await Task.sleep(for: .seconds(interval))
-            } catch GrokOIDCError.invalidResponse {
+                // Same interval.
+            } catch GrokOIDCError.slowDown {
                 interval += 5
-                try? await Task.sleep(for: .seconds(interval))
+            } catch GrokOIDCError.network {
+                // Same interval.
             }
+            try await sleep(interval)
         }
         throw GrokOIDCError.expired
     }
@@ -234,8 +232,8 @@ actor GrokOIDCClient {
             case "authorization_pending":
                 throw GrokOIDCError.authorizationPending
             case "slow_down":
-                throw GrokOIDCError.invalidResponse
-            case "access_denied":
+                throw GrokOIDCError.slowDown
+            case "access_denied", "authorization_denied":
                 throw GrokOIDCError.denied
             case "expired_token":
                 throw GrokOIDCError.expired
@@ -247,9 +245,6 @@ actor GrokOIDCClient {
             if payload?.error == "invalid_grant" {
                 throw GrokOIDCError.invalidGrant
             }
-            if allowPending, payload?.error == "authorization_pending" {
-                throw GrokOIDCError.authorizationPending
-            }
         }
         guard (200..<300).contains(http.statusCode) else {
             throw GrokOIDCError.invalidResponse
@@ -260,10 +255,15 @@ actor GrokOIDCClient {
         return payload
     }
 
+    /// Only the unreserved characters pass. `.urlQueryAllowed` leaves `+`, `&` and `=` raw, which
+    /// would corrupt a token holding them and read as `invalid_grant`.
     private func formBody(_ fields: [String: String]) -> Data {
-        fields
+        let unreserved = CharacterSet(
+            charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+        )
+        return fields
             .map { key, value in
-                "\(key)=\(value.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? value)"
+                "\(key)=\(value.addingPercentEncoding(withAllowedCharacters: unreserved) ?? value)"
             }
             .joined(separator: "&")
             .data(using: .utf8) ?? Data()

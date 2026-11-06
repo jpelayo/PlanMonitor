@@ -14,7 +14,7 @@ Each provider you enable gets its own menu bar item with its own dropdown, sign-
 |---|---|---|
 | **Claude** | claude.ai (embedded browser) | 5-hour and 7-day limits, per-model weekly windows, credit balances, extra-usage spend, Claude service status |
 | **Codex** | chatgpt.com (embedded browser) | 5-hour and weekly limits, every additional limit the API exposes, prepaid credits and overage |
-| **Grok** | accounts.x.ai + one-time usage approval | Weekly SuperGrok pool with per-product contributions, monthly allowance, extra usage credits |
+| **Grok** | x.ai's approval page (embedded browser) | Weekly SuperGrok pool with per-product contributions, extra usage credits |
 | **OpenRouter** | a pasted **management** key (read-only, cannot spend) | Remaining credit, spend over the last 15 min / hour / day / month, projected month, per-key and guardrail budgets, recently used models |
 | **Claude-API** (Claude Platform) | platform.claude.com (embedded browser, "Continue with email") | Anthropic API console money: promotional API credit and its expiry, this month's spend against your own spend limit (else Anthropic's), prepaid credit, amount to be invoiced, auto-payment on/off, Claude service status |
 | **OpenCode** | a pasted Console API key with **Usage › Read** and **Budgets › Read** (cannot call models) | Go plan 5-hour, weekly and monthly limits with their resets, this month's Console spend against your monthly budget, OpenCode service status. The credit balance is not shown yet: OpenCode does not give it to API keys |

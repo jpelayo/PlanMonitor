@@ -197,8 +197,6 @@
 "Usage access still needs approval. Open the sign-in window to finish." = "Usage access still needs approval. Open the sign-in window to finish.";
 "Approve usage access" = "Approve usage access";
 "Connecting SuperGrok usage..." = "Connecting SuperGrok usage...";
-"Approve SuperGrok usage access…" = "Approve SuperGrok usage access…";
-"Sign-in failed. Try again." = "Sign-in failed. Try again.";
 "Approval failed. Sign in again." = "Approval failed. Sign in again.";
 
 /* Grok — usage API errors */
@@ -209,7 +207,6 @@
 "Grok changed its usage response: %@" = "Grok changed its usage response: %@";
 "Weekly SuperGrok usage is not available for this account." = "Weekly SuperGrok usage is not available for this account.";
 "Team Grok accounts cannot show personal weekly usage yet." = "Team Grok accounts cannot show personal weekly usage yet.";
-"Not authenticated. Please sign in." = "Not authenticated. Please sign in.";
 "Grok usage API is not connected. Sign in again." = "Grok usage API is not connected. Sign in again.";
 "Grok did not return a usage configuration." = "Grok did not return a usage configuration.";
 

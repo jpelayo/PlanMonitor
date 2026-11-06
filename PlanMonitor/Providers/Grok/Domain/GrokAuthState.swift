@@ -9,7 +9,6 @@ nonisolated struct AccountIdentity: Equatable, Sendable {
 
 nonisolated enum GrokAuthState: Equatable, Sendable {
     case unauthenticated
-    case importing
     case restoring
     case refreshing
     case authenticated(AccountIdentity)

@@ -197,8 +197,6 @@
 "Usage access still needs approval. Open the sign-in window to finish." = "El acceso al uso aún necesita aprobación. Abre la ventana de inicio de sesión para terminar.";
 "Approve usage access" = "Aprobar el acceso al uso";
 "Connecting SuperGrok usage..." = "Conectando el uso de SuperGrok...";
-"Approve SuperGrok usage access…" = "Aprueba el acceso al uso de SuperGrok…";
-"Sign-in failed. Try again." = "No se pudo iniciar sesión. Inténtalo de nuevo.";
 "Approval failed. Sign in again." = "La aprobación falló. Inicia sesión de nuevo.";
 
 /* Grok — errores de la API de uso */
@@ -209,7 +207,6 @@
 "Grok changed its usage response: %@" = "Grok cambió su respuesta de uso: %@";
 "Weekly SuperGrok usage is not available for this account." = "El uso semanal de SuperGrok no está disponible para esta cuenta.";
 "Team Grok accounts cannot show personal weekly usage yet." = "Las cuentas de equipo de Grok aún no pueden mostrar el uso semanal personal.";
-"Not authenticated. Please sign in." = "Sin autenticar. Inicia sesión.";
 "Grok usage API is not connected. Sign in again." = "La API de uso de Grok no está conectada. Inicia sesión de nuevo.";
 "Grok did not return a usage configuration." = "Grok no devolvió una configuración de uso.";
 
