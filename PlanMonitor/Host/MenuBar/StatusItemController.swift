@@ -32,18 +32,6 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private let enabledProviders: EnabledProviders
     private var entries: [ProviderID: Entry] = [:]
     private var enablementToken: AnyObject?
-    /// When `start()` ran, so the visibility check can refuse to judge a bar that has not settled.
-    private var startedAt: Date?
-    /// When each provider was first seen hidden, for the confirming second look.
-    private var hiddenConfirmedAt: [ProviderID: Date] = [:]
-    /// The heal is destructive — it rebuilds items — so it runs at most once per launch.
-    private var healedThisLaunch = false
-
-    /// Called when an enabled item cannot be made visible by anything the app can do — on this
-    /// OS that is the per-app "Show in Menu Bar" switch, which only the user can flip.
-    var onUnrecoverable: (() -> Void)?
-    /// Called when every enabled item is displayed again.
-    var onRecovered: (() -> Void)?
 
     // Grouped mode. Kept apart from `entries` so every per-provider path below is untouched;
     // with `grouped` nil or off, none of this state is ever set.
@@ -51,7 +39,6 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     private var isGrouped = false
     private var groupedItem: NSStatusItem?
     private var groupedPopover: NSPopover?
-    private var groupedHiddenSince: Date?
 
     /// Persisted identity of the grouped item, in the same `PlanTracker.*` family as the rest.
     static let groupedAutosaveName = "PlanTracker.grouped"
@@ -97,18 +84,15 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             self?.syncEnabledItems()
         }
         observeGrouping()
-        startedAt = Date()
-        // Deliberately long: two seconds was not enough for the items to be hosted, and the
-        // check read that as "all four are gone".
-        scheduleCheck(in: Self.settlingDelay)
     }
 
-    // MARK: - Self-heal
+    // MARK: - Reset positions
 
     /// Forgets where macOS last placed the items and rebuilds them at the default position —
     /// the left edge of the status area, in the app's own order. For when a menu-bar manager
-    /// moved them out of view and left the saved position behind. This is what the Settings
-    /// button calls; the self-heal scopes it to the items it has evidence about.
+    /// moved them out of view and left the saved position behind. Only the Settings button
+    /// calls it; nothing watches the bar for hidden items (removed 2026-11-19: its verdicts
+    /// were false alarms).
     func resetPositions() {
         // The grouped item too, removed before its keys for the same reason as below.
         removeGroupedItem()
@@ -143,150 +127,6 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
             }
         }
         syncEnabledItems()
-    }
-
-    /// Three states, not two. **`unknown` is the guard that matters**: on 2026-09-30 the first
-    /// version treated "no window yet" and "occlusion not settled" as hidden, decided two
-    /// seconds after launch that all four items were gone, and tore every one of them down.
-    /// Absence of evidence is not evidence, and only `hidden` is ever acted on.
-    private enum Visibility {
-        case shown
-        case hidden
-        case unknown
-    }
-
-    private func visibility(of provider: ProviderID) -> Visibility {
-        guard let entry = entries[provider] else { return .unknown }
-        // The app forces this true on creation, so a false here is macOS's own doing.
-        if !entry.item.isVisible { return .hidden }
-        // No window means not hosted yet, which is what the early-launch state looks like.
-        guard let window = entry.item.button?.window else { return .unknown }
-        // Occlusion is meaningful only once the window has a real frame; a zero-sized or
-        // off-screen-by-default frame is the same not-settled state.
-        guard window.frame.width > 0, window.frame.height > 0 else { return .unknown }
-        return window.occlusionState.contains(.visible) ? .shown : .hidden
-    }
-
-    var allEnabledItemsDisplayed: Bool {
-        isGrouped ? groupedVisibility != .hidden : hiddenProviders.isEmpty
-    }
-
-    /// `visibility(of:)` for the grouped item — the same three states, the same evidence.
-    private var groupedVisibility: Visibility {
-        guard let item = groupedItem else { return .unknown }
-        if !item.isVisible { return .hidden }
-        guard let window = item.button?.window else { return .unknown }
-        guard window.frame.width > 0, window.frame.height > 0 else { return .unknown }
-        return window.occlusionState.contains(.visible) ? .shown : .hidden
-    }
-
-    private var hiddenProviders: [ProviderID] {
-        ProviderID.allCases.filter {
-            enabledProviders.isEnabled($0) && visibility(of: $0) == .hidden
-        }
-    }
-
-    private var enabledWithItems: [ProviderID] {
-        ProviderID.allCases.filter { enabledProviders.isEnabled($0) && entries[$0] != nil }
-    }
-
-    /// Nothing is judged before the bar has settled, and nothing is acted on until the same
-    /// verdict has survived a second look this far apart.
-    private static let settlingDelay: TimeInterval = 20
-    private static let confirmationDelay: TimeInterval = 8
-
-    /// Whether every enabled item is actually on the bar. Run once after launch, and again
-    /// whenever the app is reopened or activated — never on a timer.
-    ///
-    /// Guards, in order, each one a lesson from the mishap above:
-    ///  1. nothing before `settlingDelay`;
-    ///  2. `unknown` never counts as hidden;
-    ///  3. a verdict must be confirmed by a second observation `confirmationDelay` later;
-    ///  4. *every* item hidden is not several independent failures — it is the per-bundle-id OS
-    ///     switch, which resetting positions cannot fix, so that case only opens the window;
-    ///  5. the heal is scoped to the affected items and runs at most once per launch.
-    func checkVisibility() {
-        guard let started = startedAt else { return }
-        guard Date().timeIntervalSince(started) >= Self.settlingDelay else {
-            scheduleCheck(in: Self.settlingDelay - Date().timeIntervalSince(started))
-            return
-        }
-
-        if isGrouped {
-            checkGroupedVisibility()
-            return
-        }
-
-        let hidden = hiddenProviders
-        guard !hidden.isEmpty else {
-            hiddenConfirmedAt = [:]
-            onRecovered?()
-            return
-        }
-
-        // Confirmation: remember when each was first seen hidden, and require a second look.
-        let now = Date()
-        var confirmed: [ProviderID] = []
-        for provider in hidden {
-            if let since = hiddenConfirmedAt[provider] {
-                if now.timeIntervalSince(since) >= Self.confirmationDelay { confirmed.append(provider) }
-            } else {
-                hiddenConfirmedAt[provider] = now
-            }
-        }
-        hiddenConfirmedAt = hiddenConfirmedAt.filter { hidden.contains($0.key) }
-        guard !confirmed.isEmpty else {
-            scheduleCheck(in: Self.confirmationDelay)
-            return
-        }
-
-        let names = confirmed.map(\.rawValue).joined(separator: ",")
-        if confirmed.count == enabledWithItems.count {
-            // Every item at once is the OS switch, not a position: healing would destroy the
-            // user's arrangement for nothing.
-            AppRuntimeState.recordBreadcrumb("menubar-unrecoverable-all:\(names)")
-            onUnrecoverable?()
-            return
-        }
-
-        guard !healedThisLaunch else {
-            AppRuntimeState.recordBreadcrumb("menubar-unrecoverable:\(names)")
-            onUnrecoverable?()
-            return
-        }
-
-        healedThisLaunch = true
-        AppRuntimeState.recordBreadcrumb("menubar-selfheal:\(names)")
-        for provider in confirmed {
-            entries[provider]?.item.isVisible = true
-        }
-        resetPositions(for: confirmed)
-        scheduleCheck(in: Self.confirmationDelay)
-    }
-
-    /// The grouped item is the only item, so a confirmed hidden verdict is guard 4's case — the
-    /// OS switch — exactly as with a single provider enabled: no heal, the recovery window.
-    private func checkGroupedVisibility() {
-        hiddenConfirmedAt = [:]
-        guard groupedVisibility == .hidden else {
-            groupedHiddenSince = nil
-            onRecovered?()
-            return
-        }
-        let now = Date()
-        guard let since = groupedHiddenSince, now.timeIntervalSince(since) >= Self.confirmationDelay else {
-            if groupedHiddenSince == nil { groupedHiddenSince = now }
-            scheduleCheck(in: Self.confirmationDelay)
-            return
-        }
-        AppRuntimeState.recordBreadcrumb("menubar-unrecoverable-grouped")
-        onUnrecoverable?()
-    }
-
-    private func scheduleCheck(in seconds: TimeInterval) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + max(seconds, 1)) { [weak self] in
-            self?.checkVisibility()
-        }
     }
 
     // MARK: - Enablement
@@ -404,7 +244,6 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
 
         groupedItem = item
         groupedPopover = popover
-        groupedHiddenSince = nil
     }
 
     private func removeGroupedItem() {
@@ -412,7 +251,6 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         let popover = groupedPopover
         groupedItem = nil
         groupedPopover = nil
-        groupedHiddenSince = nil
         popover?.performClose(nil)
         popover?.contentViewController = nil
         NSStatusBar.system.removeStatusItem(item)

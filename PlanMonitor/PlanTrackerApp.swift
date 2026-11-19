@@ -338,17 +338,6 @@ struct PlanTrackerApp: App {
         )
         _statusItems = State(initialValue: statusItems)
 
-        // The app's lifeline when its items cannot be shown (see `MenuBarRecoveryView`).
-        // Opened when the launch check gives up, closed as soon as the bar is healthy again.
-        router.register(.menuBarRecovery) {
-            AnyView(MenuBarRecoveryView(
-                openPlanMonitorSettings: { WindowRouter.shared.openSettings() },
-                resetPositions: { statusItems.resetPositions() }
-            ))
-        }
-        statusItems.onUnrecoverable = { router.open(.menuBarRecovery) }
-        statusItems.onRecovered = { router.close(.menuBarRecovery) }
-
         // The delegate owns lifecycle: it shows the status items and starts the coordinator
         // once the app has finished launching, and stops everything on termination.
         AppServices.shared = AppServices(
@@ -564,21 +553,15 @@ final class PlanTrackerAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidBecomeActive(_ notification: Notification) {
         AppRuntimeState.recordBreadcrumb("did-become-active")
         guard let services = AppServices.shared, !services.launch.isTestHost else { return }
-        // The user may have just flipped a switch in System Settings — Login Items, or the
-        // per-app Menu Bar switch that decides whether the items show at all.
+        // The user may have just flipped the Login Items switch in System Settings.
         services.preferences.refreshLoginItemState()
-        services.statusItems.checkVisibility()
     }
 
-    /// Opening the app again — Finder, Dock, `open -a` — while it is running. If its items are
-    /// on the bar there is nothing to do; if they are not, this is the one gesture guaranteed to
-    /// reach the user, so it must put Settings on screen.
+    /// Opening the app again — Finder, Dock, `open -a` — while it is running. The user asked for
+    /// the app, so Settings comes up: the one way in that works even if macOS hides the items.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         guard let services = AppServices.shared, !services.launch.isTestHost else { return true }
-        services.statusItems.checkVisibility()
-        if !services.statusItems.allEnabledItemsDisplayed {
-            WindowRouter.shared.openSettings()
-        }
+        WindowRouter.shared.openSettings()
         return true
     }
 

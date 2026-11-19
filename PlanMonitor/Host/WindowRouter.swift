@@ -13,9 +13,6 @@ final class WindowRouter: NSObject, NSWindowDelegate {
         case connectOpenRouter = "connect-openrouter"
         case loginClaudeAPI = "login-claudeapi"
         case connectOpenCode = "connect-opencode"
-        /// Shown when the menu bar items cannot be made visible by the app — the only way the
-        /// user can still reach it.
-        case menuBarRecovery = "menubar-recovery"
 
         var title: String {
             switch self {
@@ -25,7 +22,6 @@ final class WindowRouter: NSObject, NSWindowDelegate {
             case .connectOpenRouter: String(localized: "Connect OpenRouter")
             case .loginClaudeAPI: String(localized: "Sign in to Claude-API")
             case .connectOpenCode: String(localized: "Connect OpenCode")
-            case .menuBarRecovery: String(localized: "PlanMonitor is hidden from the menu bar")
             }
         }
     }
