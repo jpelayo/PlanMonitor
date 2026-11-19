@@ -202,6 +202,7 @@ final class ClaudeUsageViewModel {
             AppRuntimeState.recordBreadcrumb("provider-claude-login-success")
             isDemoMode = false
             authState = .authenticated(email: email)
+            errorMessage = nil
             await startPolling()
         } catch {
             handleError(error)
@@ -315,11 +316,16 @@ final class ClaudeUsageViewModel {
         if let apiError = error as? ClaudeAPIClient.APIError {
             switch apiError {
             case .unauthorized, .forbidden:
+                // `logout()` clears `errorMessage`, so the reason is put back once it is done:
+                // the signed-out screen should say why the user has to sign in again.
+                let reason = apiError.errorDescription
                 logoutTask?.cancel()
                 logoutTask = Task { [weak self] in
                     await self?.logout()
+                    guard !Task.isCancelled else { return }
+                    self?.errorMessage = reason
                 }
-                errorMessage = apiError.errorDescription
+                errorMessage = reason
             default:
                 setNonCriticalErrorMessage(apiError.errorDescription)
             }

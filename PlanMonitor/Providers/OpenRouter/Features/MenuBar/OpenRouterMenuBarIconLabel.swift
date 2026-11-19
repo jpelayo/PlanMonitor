@@ -33,13 +33,14 @@ enum OpenRouterMenuBarLabel {
         )
     }
 
+    // `isConnected`, not `showsBudgets`: a refused key shows no figures anywhere, the bar included.
     private static func creditSeverity(snapshot: OpenRouterSnapshot, connectionState: ConnectionState) -> BudgetSeverity {
-        guard connectionState.showsBudgets, let credit = snapshot.accountCredit else { return .normal }
+        guard connectionState.isConnected, let credit = snapshot.accountCredit else { return .normal }
         return credit.severity
     }
 
     private static func budgetSeverity(snapshot: OpenRouterSnapshot, connectionState: ConnectionState) -> BudgetSeverity {
-        guard connectionState.showsBudgets else { return .normal }
+        guard connectionState.isConnected else { return .normal }
         if snapshot.accountCredit?.isNegative == true { return .critical }
         return BudgetSeverity(snapshot.worstBudgetFraction)
     }
@@ -50,7 +51,7 @@ enum OpenRouterMenuBarLabel {
         display: MenuBarDisplay,
         currencyStyle: CurrencyStyle
     ) -> String? {
-        guard connectionState.showsBudgets, let credit = snapshot.accountCredit else { return nil }
+        guard connectionState.isConnected, let credit = snapshot.accountCredit else { return nil }
         switch display {
         case .iconOnly:
             return nil

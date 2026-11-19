@@ -15,7 +15,6 @@ final class GrokUsageViewModel {
     private(set) var grokSystemStatus: GrokSystemStatus = .degraded
     private(set) var grokStatusSourceUpdatedAt: Date?
     private(set) var nextRefreshAt: Date?
-    var needsUsageAuthorization = false
 
     var pollingIntervalMinutes: Int = 5 {
         didSet {
@@ -138,7 +137,6 @@ final class GrokUsageViewModel {
         let credentials = try await authService.completeDeviceAuthorization(authorization)
         pendingDeviceAuthorization = nil
         pendingUserCode = nil
-        needsUsageAuthorization = false
         isDemoMode = false
         authState = .authenticated(credentials.identity)
         errorMessage = nil
@@ -175,7 +173,7 @@ final class GrokUsageViewModel {
 
     func resume() async {
         guard !isDemoMode else { return }
-        if authState.showsUsage, !needsUsageAuthorization {
+        if authState.showsUsage {
             await startPolling()
         } else {
             await checkAuthentication()
@@ -197,7 +195,6 @@ final class GrokUsageViewModel {
         errorMessage = nil
         isStale = false
         isDemoMode = false
-        needsUsageAuthorization = false
         pendingDeviceAuthorization = nil
         pendingUserCode = nil
         snapshotStore.clear()
@@ -289,12 +286,47 @@ final class GrokUsageViewModel {
         return signals
     }
 
+    /// What a failed poll proves about the session. The poll has already forced a token refresh
+    /// and retried once before an error reaches here (`GrokUsagePollingService.fetchUsage`).
+    enum AuthOutcome: Equatable {
+        /// The credentials are gone — `invalid_grant` deleted them, or none are stored.
+        case signedOut
+        /// A freshly refreshed token was still refused: unproven either way, so keep what is shown.
+        case inconclusive
+        /// Not about the session at all.
+        case ordinary
+    }
+
+    nonisolated static func authOutcome(for error: Error) -> AuthOutcome {
+        switch error as? GrokAPIError {
+        case .noAccessToken?: .signedOut
+        case .unauthorized?: .inconclusive
+        default: .ordinary
+        }
+    }
+
     private func handleError(_ error: Error) {
+        switch Self.authOutcome(for: error) {
+        case .signedOut:
+            // An expired session is shown signed out — Sign In button, no gauges — never as
+            // gauges under a "sign in again" line. The cached snapshot stays on disk.
+            AppRuntimeState.recordBreadcrumb("provider-grok-token-lost")
+            Task { [pollingService] in await pollingService.stopPolling() }
+            nextRefreshAt = nil
+            authState = .unauthenticated
+            usageData = .empty
+            isStale = false
+            errorMessage = GrokAPIError.noAccessToken.localizedDescription
+            return
+        case .inconclusive:
+            errorMessage = String(localized: "Couldn't confirm the session. Retrying shortly.")
+            isStale = usageData != .empty
+            return
+        case .ordinary:
+            break
+        }
         if let apiError = error as? GrokAPIError {
             switch apiError {
-            case .unauthorized, .noAccessToken:
-                needsUsageAuthorization = true
-                return
             case .noWeeklyUsage:
                 // With nothing to show, say why; with cached usage, stay quiet.
                 errorMessage = usageData == .empty ? apiError.localizedDescription : nil
@@ -402,7 +434,6 @@ extension GrokUsageViewModel: DemoCapable {
         credentialRetryTask = nil
         Task { await pollingService.stopPolling() }
         nextRefreshAt = nil
-        needsUsageAuthorization = false
         let demo = DemoGrokUsage.snapshot()
         usageData = demo
         lastUpdated = demo.fetchedAt

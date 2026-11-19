@@ -32,6 +32,14 @@ final class GlobalPreferences {
         }
     }
 
+    /// One menu-bar item for every provider instead of one each. Only takes effect with two or
+    /// more providers enabled (`GroupedMenuRule`); the stored choice is kept either way, so
+    /// enabling a second provider brings the grouped item back. Not a `Change`: nothing fans
+    /// out to the view models — only the status items swap.
+    var groupMenuBarItems: Bool {
+        didSet { defaults.set(groupMenuBarItems, forKey: Keys.groupMenuBarItems) }
+    }
+
     var appLanguage: AppLanguage {
         didSet {
             defaults.set(appLanguage.rawValue, forKey: Keys.language)
@@ -88,6 +96,7 @@ final class GlobalPreferences {
         static let pollingInterval = "pollingIntervalMinutes"
         static let showRemaining = "showRemainingPercent"
         static let language = "appLanguage"
+        static let groupMenuBarItems = "groupMenuBarItems"
     }
 
     private let defaults: UserDefaults
@@ -103,6 +112,7 @@ final class GlobalPreferences {
         let storedInterval = defaults.object(forKey: Keys.pollingInterval) as? Int ?? 5
         pollingIntervalMinutes = Self.repairedPollingInterval(storedInterval)
         showRemainingPercent = defaults.object(forKey: Keys.showRemaining) as? Bool ?? true
+        groupMenuBarItems = defaults.object(forKey: Keys.groupMenuBarItems) as? Bool ?? false
         appLanguage = defaults.string(forKey: Keys.language).flatMap(AppLanguage.init(rawValue:)) ?? .system
         launchAtLogin = readLoginItem ? LoginItemController.isEnabled : false
 

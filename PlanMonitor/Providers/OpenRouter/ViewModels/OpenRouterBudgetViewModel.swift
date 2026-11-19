@@ -69,7 +69,7 @@ final class OpenRouterBudgetViewModel {
     /// every gauge empty — inference is blocked, and the ring should say so — and a gauge with
     /// nothing to measure (no mark yet, no capped keys) is the same whole ring as `off`.
     var ringFill: Double? {
-        guard connectionState.showsBudgets, ringSource != .off else { return nil }
+        guard connectionState.isConnected, ringSource != .off else { return nil }
         if snapshot.accountCredit?.isNegative == true { return 0 }
         switch ringSource {
         case .off:
@@ -94,6 +94,9 @@ final class OpenRouterBudgetViewModel {
     private let snapshotStore: OpenRouterSnapshotStore
     private var credentialRetryTask: Task<Void, Never>?
     private let credentialRetryDelay: TimeInterval = 60
+    /// The identity the stored key last validated as, so a good poll after a rejection can put
+    /// the real label back rather than a placeholder.
+    private var lastIdentity: KeyIdentity?
 
     init(
         secureStore: any SecureStore,
@@ -147,6 +150,7 @@ final class OpenRouterBudgetViewModel {
 
         do {
             let identity = try await apiClient.validateKey(stored.key)
+            lastIdentity = identity
             connectionState = .connected(identity)
             errorMessage = nil
             AppRuntimeState.recordBreadcrumb("provider-openrouter-credential-validated")
@@ -206,6 +210,7 @@ final class OpenRouterBudgetViewModel {
             if previousState.identity?.label != identity.label {
                 clearCreditRingMark()
             }
+            lastIdentity = identity
             connectionState = .connected(identity)
             errorMessage = nil
             AppRuntimeState.recordBreadcrumb("provider-openrouter-connected")
@@ -314,8 +319,23 @@ final class OpenRouterBudgetViewModel {
         }
     }
 
+    /// A successful authenticated read proves the key, so a rejection it outlived is over.
+    /// Every other state is left alone.
+    static func connectionState(
+        afterSuccessFrom state: ConnectionState,
+        lastIdentity: KeyIdentity?
+    ) -> ConnectionState {
+        guard case .invalidKey = state else { return state }
+        return .connected(lastIdentity ?? placeholderIdentity)
+    }
+
     private func apply(_ outcome: PollOutcome) {
         guard !isDemoMode else { return }
+        let reconnected = Self.connectionState(afterSuccessFrom: connectionState, lastIdentity: lastIdentity)
+        if reconnected != connectionState {
+            AppRuntimeState.recordBreadcrumb("provider-openrouter-key-accepted-again")
+            connectionState = reconnected
+        }
         if let credit = outcome.snapshot.accountCredit {
             let observed = creditRingMark.observing(credit)
             if observed != creditRingMark {

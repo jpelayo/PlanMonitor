@@ -395,10 +395,7 @@ final class CodexUsageViewModel {
         }
 
         guard canAttemptAuthRecovery else {
-            if !authState.isAuthenticated {
-                authState = .unauthenticated
-            }
-            errorMessage = apiError.errorDescription
+            showUnconfirmedSession(apiError)
             return
         }
 
@@ -410,23 +407,69 @@ final class CodexUsageViewModel {
 
         AppRuntimeState.recordBreadcrumb("provider-codex-auth-recovery-start")
 
-        if await recoverUsingStoredSession() {
+        let stored = await recoverUsingStoredSession()
+        if stored == .recovered {
             AppRuntimeState.recordBreadcrumb("provider-codex-auth-recovery-stored-session")
             errorMessage = nil
             return
         }
 
-        if await recoverUsingWebViewCookies() {
+        let webView = await recoverUsingWebViewCookies()
+        if webView == .recovered {
             AppRuntimeState.recordBreadcrumb("provider-codex-auth-recovery-webview-cookies")
             errorMessage = nil
             return
         }
 
-        AppRuntimeState.recordBreadcrumb("provider-codex-auth-recovery-failed")
-        if !authState.isAuthenticated {
+        switch RecoveryOutcome.combine(stored, webView) {
+        case .recovered:
+            errorMessage = nil
+        case .rejected:
+            // Both ways of reading said no: the session is over. Shown signed out — Sign In,
+            // no gauges — never as old gauges under "Session expired". Credentials and the
+            // on-disk snapshot stay until the user signs out or in again, as for Claude-API.
+            AppRuntimeState.recordBreadcrumb("provider-codex-auth-recovery-rejected")
+            await pollingService.stopPolling()
+            nextRefreshAt = nil
             authState = .unauthenticated
+            usageData = .empty
+            errorMessage = apiError.errorDescription
+        case .inconclusive:
+            AppRuntimeState.recordBreadcrumb("provider-codex-auth-recovery-failed")
+            showUnconfirmedSession(apiError)
         }
-        errorMessage = apiError.errorDescription
+    }
+
+    /// Unproven either way — network, a locked Keychain, the cooldown. A signed-in user keeps
+    /// the gauges with a neutral line; the expiry text belongs only to the signed-out screen.
+    private func showUnconfirmedSession(_ apiError: OpenAIAPIClient.APIError) {
+        if authState.isAuthenticated {
+            errorMessage = String(localized: "Couldn't confirm the session. Retrying shortly.")
+        } else {
+            authState = .unauthenticated
+            errorMessage = apiError.errorDescription
+        }
+    }
+
+    /// What one recovery attempt proved. `rejected` means the identity endpoint said no, or there
+    /// was nothing to read with; anything else that failed is `inconclusive`.
+    enum RecoveryOutcome: Equatable {
+        case recovered
+        case rejected
+        case inconclusive
+
+        static func combine(_ first: Self, _ second: Self) -> Self {
+            if first == .recovered || second == .recovered { return .recovered }
+            if first == .inconclusive || second == .inconclusive { return .inconclusive }
+            return .rejected
+        }
+
+        static func failure(_ error: Error) -> Self {
+            switch error as? OpenAIAPIClient.APIError {
+            case .unauthorized?, .forbidden?, .noSessionCookies?: .rejected
+            default: .inconclusive
+            }
+        }
     }
 
     private var canAttemptAuthRecovery: Bool {
@@ -435,9 +478,12 @@ final class CodexUsageViewModel {
         return Date().timeIntervalSince(lastAttempt) >= authRecoveryCooldown
     }
 
-    private func recoverUsingStoredSession() async -> Bool {
-        guard case .restored(let identity) = await authService.restoreStoredSession() else {
-            return false
+    private func recoverUsingStoredSession() async -> RecoveryOutcome {
+        let identity: String?
+        switch await authService.restoreStoredSession() {
+        case .restored(let label): identity = label
+        case .absent: return .rejected
+        case .unavailable: return .inconclusive
         }
 
         if let identity, !authState.isAuthenticated {
@@ -448,15 +494,15 @@ final class CodexUsageViewModel {
             let email = try await authService.refreshCachedIdentity(forceRefresh: true)
             authState = .authenticated(email: email)
             await authService.persistCurrentSessionCookiesIfNeeded()
-            return true
+            return .recovered
         } catch {
-            return false
+            return .failure(error)
         }
     }
 
-    private func recoverUsingWebViewCookies() async -> Bool {
+    private func recoverUsingWebViewCookies() async -> RecoveryOutcome {
         guard let cookieString = await cookieManager.extractSessionCookies() else {
-            return false
+            return .rejected
         }
 
         do {
@@ -464,9 +510,9 @@ final class CodexUsageViewModel {
             let email = try await authService.validateSession()
             authState = .authenticated(email: email)
             await authService.persistCurrentSessionCookiesIfNeeded()
-            return true
+            return .recovered
         } catch {
-            return false
+            return .failure(error)
         }
     }
 

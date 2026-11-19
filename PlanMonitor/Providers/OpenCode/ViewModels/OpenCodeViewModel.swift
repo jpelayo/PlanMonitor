@@ -67,7 +67,8 @@ final class OpenCodeViewModel {
 
     /// `MenuBarLabel.variableValue`: `nil` leaves the ring whole.
     var ringFill: Double? {
-        guard connectionState.showsBudget else { return nil }
+        // Connected only: a refused key shows no figures, the ring included.
+        guard case .connected = connectionState else { return nil }
         return ringSource.fill(for: snapshot)
     }
 

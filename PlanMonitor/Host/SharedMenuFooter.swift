@@ -63,7 +63,7 @@ struct SharedMenuFooter: View {
 
             Divider()
 
-            ProviderControlsRow(providers: providers)
+            ProviderControlsRow(providers: providers, preferences: preferences)
 
             Divider()
 

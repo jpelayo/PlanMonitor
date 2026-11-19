@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProviderControlsRow: View {
     @Bindable var providers: EnabledProviders
+    @Bindable var preferences: GlobalPreferences
 
     /// Three to a row when one line does not fit the 320pt dropdown — five labels already do not, and
     /// Spanish is wider still. Derived from `allCases`, as `ProviderSettingsRow`'s fallback is.
@@ -14,6 +15,18 @@ struct ProviderControlsRow: View {
             Label(String(localized: "Providers"), systemImage: "square.grid.2x2")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // An overlay, so the switch can never change this line's height — every
+                // provider's dropdown keeps its exact layout. Offered only where it can apply.
+                .overlay(alignment: .trailing) {
+                    if GroupedMenuRule.offersSwitch(enabledCount: providers.values.count) {
+                        Toggle(String(localized: "One item"), isOn: $preferences.groupMenuBarItems)
+                            .toggleStyle(.checkbox)
+                            .controlSize(.small)
+                            .font(.caption2)
+                            .help(String(localized: "Group into one menu-bar item"))
+                    }
+                }
 
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 6) {

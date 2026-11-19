@@ -132,8 +132,90 @@ struct PlanTrackerApp: App {
             AnyView(OpenCodeConnectKeyView(viewModel: openCode))
         }
 
+        // The grouped dropdown's view of each provider, from the same view models: its compact
+        // section, its own Refresh, and — for the money providers — its balance lines. In
+        // `ProviderID` order, which is the order the sections appear in.
+        let groupedEntries: [GroupedMenuEntry] = [
+            GroupedMenuEntry(
+                id: .claude,
+                section: { AnyView(ClaudeGroupedSection(viewModel: claude)) },
+                refresh: { await claude.refreshUsage() },
+                isRefreshing: { claude.isLoading },
+                nextRefreshAt: { claude.nextRefreshAt },
+                canRefresh: { claude.authState.isAuthenticated && !claude.isDemoMode },
+                isDemo: { claude.isDemoMode },
+                balances: { [] }
+            ),
+            GroupedMenuEntry(
+                id: .codex,
+                section: { AnyView(CodexGroupedSection(viewModel: codex)) },
+                refresh: { await codex.refreshUsage() },
+                isRefreshing: { codex.isLoading },
+                nextRefreshAt: { codex.nextRefreshAt },
+                canRefresh: { codex.authState.isAuthenticated && !codex.isDemoMode },
+                isDemo: { codex.isDemoMode },
+                balances: { [] }
+            ),
+            GroupedMenuEntry(
+                id: .grok,
+                section: { AnyView(GrokGroupedSection(viewModel: grok)) },
+                refresh: { await grok.refreshUsage() },
+                isRefreshing: { grok.isLoading },
+                nextRefreshAt: { grok.nextRefreshAt },
+                canRefresh: { grok.authState.showsUsage && !grok.isDemoMode },
+                isDemo: { grok.isDemoMode },
+                balances: { [] }
+            ),
+            GroupedMenuEntry(
+                id: .openrouter,
+                section: { AnyView(OpenRouterGroupedSection(viewModel: openRouter)) },
+                refresh: { await openRouter.refresh() },
+                isRefreshing: { openRouter.isLoading },
+                nextRefreshAt: { openRouter.nextRefreshAt },
+                canRefresh: { openRouter.connectionState.showsBudgets && !openRouter.isDemoMode },
+                isDemo: { openRouter.isDemoMode },
+                balances: {
+                    OpenRouterGroupedBalance.lines(
+                        snapshot: openRouter.snapshot,
+                        connectionState: openRouter.connectionState,
+                        style: openRouter.currencyStyle
+                    )
+                }
+            ),
+            GroupedMenuEntry(
+                id: .claudeapi,
+                section: { AnyView(ClaudePlatformGroupedSection(viewModel: claudeAPI)) },
+                refresh: { await claudeAPI.refreshUsage() },
+                isRefreshing: { claudeAPI.isLoading },
+                nextRefreshAt: { claudeAPI.nextRefreshAt },
+                canRefresh: { claudeAPI.authState.isAuthenticated && !claudeAPI.isDemoMode },
+                isDemo: { claudeAPI.isDemoMode },
+                balances: {
+                    ClaudePlatformGroupedBalance.lines(
+                        snapshot: claudeAPI.snapshot,
+                        isSignedIn: claudeAPI.authState.isAuthenticated,
+                        style: claudeAPI.currencyStyle
+                    )
+                }
+            ),
+            GroupedMenuEntry(
+                id: .opencode,
+                section: { AnyView(OpenCodeGroupedSection(viewModel: openCode)) },
+                refresh: { await openCode.refreshUsage() },
+                isRefreshing: { openCode.isLoading },
+                nextRefreshAt: { openCode.nextRefreshAt },
+                canRefresh: {
+                    guard case .connected = openCode.connectionState else { return false }
+                    return !openCode.isDemoMode
+                },
+                isDemo: { openCode.isDemoMode },
+                balances: { [] }
+            )
+        ]
+
         // Menu-bar items: one per enabled provider, label from the provider, dropdown is the
-        // provider's SwiftUI view in a popover.
+        // provider's SwiftUI view in a popover — or, when grouping is on and two or more
+        // providers are enabled, one plain item for all of them.
         let statusItems = StatusItemController(
             providers: [
                 .init(
@@ -241,7 +323,18 @@ struct PlanTrackerApp: App {
                     }
                 )
             ],
-            enabledProviders: enabled
+            enabledProviders: enabled,
+            grouped: .init(
+                isOn: {
+                    GroupedMenuRule.isEffective(
+                        preference: globalPreferences.groupMenuBarItems,
+                        enabledCount: enabled.values.count
+                    )
+                },
+                content: {
+                    AnyView(GroupedMenuBarView(entries: groupedEntries, providers: enabled, preferences: globalPreferences))
+                }
+            )
         )
         _statusItems = State(initialValue: statusItems)
 

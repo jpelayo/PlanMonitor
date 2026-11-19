@@ -443,10 +443,7 @@ final class ClaudePlatformViewModel {
         }
 
         guard canAttemptAuthRecovery else {
-            if !authState.isAuthenticated {
-                authState = .unauthenticated
-            }
-            errorMessage = apiError.errorDescription
+            showUnconfirmedSession(apiError)
             return
         }
 
@@ -475,9 +472,17 @@ final class ClaudePlatformViewModel {
         case .inconclusive:
             // Network, a locked Keychain, an odd body: transient. Keep what is on screen.
             AppRuntimeState.recordBreadcrumb("provider-claudeapi-auth-recovery-failed")
-            if !authState.isAuthenticated {
-                authState = .unauthenticated
-            }
+            showUnconfirmedSession(apiError)
+        }
+    }
+
+    /// Unproven either way — network, a locked Keychain, the cooldown. A signed-in user keeps
+    /// the gauges with a neutral line; the expiry text belongs only to the signed-out screen.
+    private func showUnconfirmedSession(_ apiError: ClaudePlatformClient.APIError) {
+        if authState.isAuthenticated {
+            errorMessage = String(localized: "Couldn't confirm the session. Retrying shortly.")
+        } else {
+            authState = .unauthenticated
             errorMessage = apiError.errorDescription
         }
     }

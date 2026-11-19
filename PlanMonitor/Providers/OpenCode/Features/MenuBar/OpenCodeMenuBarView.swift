@@ -39,9 +39,15 @@ struct OpenCodeMenuBarView: View {
 
         VStack(alignment: .leading, spacing: 12) {
             if case .invalidKey(_, let reason) = viewModel.connectionState {
+                // The key was refused: no figures, only the reason and the way out. The key and
+                // the snapshot stay stored until the user replaces or removes the key.
                 banner(reason)
-            }
-            if viewModel.snapshot.isEmpty {
+                Button(String(localized: "Replace key")) {
+                    WindowRouter.shared.open(.connectOpenCode)
+                }
+                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity)
+            } else if viewModel.snapshot.isEmpty {
                 Text(String(localized: "No usage data yet"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -55,11 +61,6 @@ struct OpenCodeMenuBarView: View {
                     spendGauge
                     Divider()
                     additionalInfo
-                } else if !viewModel.snapshot.budgetsReadable {
-                    Text(String(localized: "Give this key Budgets › Read to see Console spend."))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -258,9 +259,15 @@ struct OpenCodeMenuBarView: View {
         } else if let degraded = viewModel.degradedMessage {
             statusText(degraded, tint: .orange)
         }
-        if let updated = viewModel.lastUpdated, viewModel.isStale {
+        if let updated = viewModel.lastUpdated, viewModel.isStale, !isKeyRejected {
             statusText(String(localized: "Stale — last updated \(relative(updated))"), tint: .secondary)
         }
+    }
+
+    /// No figures are shown for a refused key, so there is nothing for a "stale" line to describe.
+    private var isKeyRejected: Bool {
+        if case .invalidKey = viewModel.connectionState { return true }
+        return false
     }
 
     private func isShownInBanner(_ message: String) -> Bool {

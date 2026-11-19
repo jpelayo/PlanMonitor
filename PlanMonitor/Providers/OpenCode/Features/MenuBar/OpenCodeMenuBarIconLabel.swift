@@ -19,7 +19,9 @@ enum OpenCodeMenuBarLabel {
         ringFill: Double?,
         font: NSFont
     ) -> MenuBarLabel {
-        let showsBudget = connectionState.showsBudget
+        // Connected only, not `showsBudget`: a refused key shows no figures anywhere, the bar included.
+        var showsBudget = false
+        if case .connected = connectionState { showsBudget = true }
         let digits = showsBudget
             ? OpenCodeMenuBarDigits.resolve(display: display, go: snapshot.go, showRemainingPercent: showRemainingPercent)
             : OpenCodeMenuBarDigits.Resolved(text: nil, severityFraction: nil)

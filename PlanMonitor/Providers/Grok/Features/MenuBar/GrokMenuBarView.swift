@@ -16,14 +16,6 @@ struct GrokMenuBarView: View {
         }
         .frame(width: 320)
         .padding(.bottom, 10)
-        .onAppear {
-            presentLoginWindowIfNeeded()
-        }
-        .onChange(of: viewModel.needsUsageAuthorization) { _, needed in
-            if needed {
-                presentLoginWindowIfNeeded()
-            }
-        }
     }
 
     @ViewBuilder
@@ -168,27 +160,6 @@ struct GrokMenuBarView: View {
                     usedPercent: min((used / limit) * 100, 100),
                     resetsAt: viewModel.usageData.monthlyResetsAt,
                 )
-            } else if viewModel.needsUsageAuthorization {
-                VStack(spacing: 6) {
-                    if let code = viewModel.pendingUserCode {
-                        Text(code)
-                            .font(.title3.monospaced().weight(.semibold))
-                            .textSelection(.enabled)
-                        Text(String(localized: "Confirm letters match and press Continue"))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                    } else {
-                        Text(String(localized: "Usage access still needs approval."))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    Button(String(localized: "Approve usage access")) {
-                        presentLoginWindow()
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                .frame(maxWidth: .infinity)
             } else if viewModel.isLoading {
                 ProgressView()
                     .frame(maxWidth: .infinity)
@@ -282,16 +253,5 @@ struct GrokMenuBarView: View {
         case .outage:
             String(localized: "Grok outage")
         }
-    }
-
-    private func presentLoginWindow() {
-        NSApp.setActivationPolicy(.regular)
-        NSApp.activate(ignoringOtherApps: true)
-        WindowRouter.shared.open(.loginGrok)
-    }
-
-    private func presentLoginWindowIfNeeded() {
-        guard viewModel.needsUsageAuthorization, !viewModel.isDemoMode else { return }
-        presentLoginWindow()
     }
 }

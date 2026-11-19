@@ -193,9 +193,6 @@
 "soon" = "pronto";
 "Imagine" = "Imagine";
 "Voice" = "Voz";
-"Usage access still needs approval." = "El acceso al uso aún necesita aprobación.";
-"Usage access still needs approval. Open the sign-in window to finish." = "El acceso al uso aún necesita aprobación. Abre la ventana de inicio de sesión para terminar.";
-"Approve usage access" = "Aprobar el acceso al uso";
 "Connecting SuperGrok usage..." = "Conectando el uso de SuperGrok...";
 "Approval failed. Sign in again." = "La aprobación falló. Inicia sesión de nuevo.";
 
@@ -353,7 +350,6 @@
 "Limit reached" = "Límite alcanzado";
 "Go requests are paused until the reset unless Extra usage is on." = "Las peticiones de Go quedan en pausa hasta el reinicio, salvo que Extra usage esté activado.";
 "Go limits: not available for this key or workspace." = "Límites de Go: no disponibles para esta clave o este espacio.";
-"Give this key Budgets › Read to see Console spend." = "Dale a esta clave Budgets › Read para ver el gasto de la consola.";
 "No usage data yet" = "Aún no hay datos de uso";
 "Monthly budget" = "Presupuesto mensual";
 "A full ring is your monthly budget." = "El anillo completo es tu presupuesto mensual.";
@@ -368,3 +364,9 @@
 "Remove key" = "Eliminar clave";
 "Member" = "Miembro";
 "Whole workspace" = "Todo el espacio";
+"Checking sign-in…" = "Comprobando la sesión…";
+"Couldn't confirm the session. Retrying shortly." = "No se ha podido confirmar la sesión. Se reintentará en breve.";
+"Group into one menu-bar item" = "Agrupar en un solo icono de la barra de menús";
+"Shows every enabled provider under one icon." = "Muestra todos los proveedores activados bajo un solo icono.";
+"One item" = "Un icono";
+"Balances" = "Saldos";

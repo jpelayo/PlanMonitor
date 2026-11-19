@@ -62,6 +62,16 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 }
 
+                if GroupedMenuRule.offersSwitch(enabledCount: providers.values.count) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Toggle(String(localized: "Group into one menu-bar item"), isOn: $preferences.groupMenuBarItems)
+                        Text(String(localized: "Shows every enabled provider under one icon."))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .firstTextBaseline) {
                         Text(String(localized: "Menu bar items"))
@@ -166,6 +176,7 @@ struct SettingsView: View {
         providerAccount(
             email: viewModel.authState.email,
             plan: viewModel.usageData.planDisplayName,
+            isRestoring: viewModel.authState == .restoring(email: nil),
             signInWindow: .loginClaude,
             signOut: { await viewModel.logout() }
         )
@@ -187,6 +198,7 @@ struct SettingsView: View {
         providerAccount(
             email: codexViewModel.authState.email,
             plan: codexViewModel.usageData.planTier.displayName,
+            isRestoring: codexViewModel.authState == .restoring(email: nil),
             signInWindow: .loginCodex,
             signOut: { await codexViewModel.logout() }
         )
@@ -201,14 +213,10 @@ struct SettingsView: View {
         providerAccount(
             email: grokViewModel.authState.email,
             plan: grokViewModel.usageData.planDisplayName,
+            isRestoring: grokViewModel.authState == .restoring,
             signInWindow: .loginGrok,
             signOut: { await grokViewModel.logout() }
         )
-        if grokViewModel.needsUsageAuthorization {
-            Text(String(localized: "Usage access still needs approval. Open the sign-in window to finish."))
-                .font(.caption2)
-                .foregroundStyle(.orange)
-        }
     }
 
     @ViewBuilder
@@ -217,6 +225,22 @@ struct SettingsView: View {
         MenuBarTextControls(preferences: openRouterViewModel.menuBarText)
         if let identity = openRouterViewModel.connectionState.identity {
             LabeledContent(String(localized: "Connected as"), value: identity.label)
+            HStack {
+                Button(String(localized: "Replace key")) {
+                    WindowRouter.shared.open(.connectOpenRouter)
+                }
+                Button(String(localized: "Remove management key"), role: .destructive) {
+                    Task { await openRouterViewModel.disconnect() }
+                }
+            }
+        } else if case .invalidKey(let reason) = openRouterViewModel.connectionState {
+            // The key is still stored: it can be replaced or removed, not "connected" afresh.
+            if !reason.isEmpty {
+                Text(reason)
+                    .font(.caption2)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             HStack {
                 Button(String(localized: "Replace key")) {
                     WindowRouter.shared.open(.connectOpenRouter)
@@ -303,6 +327,7 @@ struct SettingsView: View {
         providerAccount(
             email: claudeAPIViewModel.authState.email,
             plan: nil,
+            isRestoring: claudeAPIViewModel.authState == .restoring(email: nil),
             signInWindow: .loginClaudeAPI,
             signOut: { await claudeAPIViewModel.logout() }
         )
@@ -383,6 +408,7 @@ struct SettingsView: View {
     private func providerAccount(
         email: String?,
         plan: String?,
+        isRestoring: Bool,
         signInWindow: WindowRouter.AppWindow,
         signOut: @escaping @MainActor () async -> Void
     ) -> some View {
@@ -394,6 +420,11 @@ struct SettingsView: View {
             Button(String(localized: "Sign Out"), role: .destructive) {
                 Task { await signOut() }
             }
+        } else if isRestoring {
+            // Still reading the Keychain (or it is locked): signed in, just not confirmed yet.
+            // Offering Sign In here would invite a needless second sign-in.
+            Text(String(localized: "Checking sign-in…"))
+                .foregroundStyle(.secondary)
         } else {
             Text(String(localized: "Not signed in"))
                 .foregroundStyle(.secondary)

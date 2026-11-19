@@ -21,6 +21,13 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         var lastLabel: MenuBarLabel?
     }
 
+    /// The optional single item that stands in for every provider's. `isOn` is the *effective*
+    /// switch (`GroupedMenuRule`), read under observation so a change swaps the items.
+    struct Grouped {
+        let isOn: () -> Bool
+        let content: () -> AnyView
+    }
+
     private let providers: [ProviderID: Provider]
     private let enabledProviders: EnabledProviders
     private var entries: [ProviderID: Entry] = [:]
@@ -38,9 +45,21 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     /// Called when every enabled item is displayed again.
     var onRecovered: (() -> Void)?
 
-    init(providers: [Provider], enabledProviders: EnabledProviders) {
+    // Grouped mode. Kept apart from `entries` so every per-provider path below is untouched;
+    // with `grouped` nil or off, none of this state is ever set.
+    private let grouped: Grouped?
+    private var isGrouped = false
+    private var groupedItem: NSStatusItem?
+    private var groupedPopover: NSPopover?
+    private var groupedHiddenSince: Date?
+
+    /// Persisted identity of the grouped item, in the same `PlanTracker.*` family as the rest.
+    static let groupedAutosaveName = "PlanTracker.grouped"
+
+    init(providers: [Provider], enabledProviders: EnabledProviders, grouped: Grouped? = nil) {
         self.providers = Dictionary(uniqueKeysWithValues: providers.map { ($0.id, $0) })
         self.enabledProviders = enabledProviders
+        self.grouped = grouped
         super.init()
     }
 
@@ -61,13 +80,15 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         // is set, so a position no display can show has to be gone by then.
         let removed = MenuBarAutosaveSanitizer.sanitise(
             Self.autosaveDefaults,
-            autosaveNames: ProviderID.allCases.map(Self.autosaveName(for:)),
+            autosaveNames: ProviderID.allCases.map(Self.autosaveName(for:)) + [Self.groupedAutosaveName],
             widestScreen: NSScreen.screens.map(\.frame.width).max() ?? 0
         )
         if !removed.isEmpty {
             AppRuntimeState.recordBreadcrumb("menubar-sanitised:\(removed.count)")
         }
 
+        // `syncEnabledItems` reads the grouping switch first, so launching grouped never
+        // creates — and never flashes — the provider items.
         syncEnabledItems()
         // Synchronous: the item must appear in the same event as the checkbox click, and a
         // transient popover can hold the run loop long enough that a scheduled task would
@@ -75,6 +96,7 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         enablementToken = enabledProviders.observeSynchronously { [weak self] _ in
             self?.syncEnabledItems()
         }
+        observeGrouping()
         startedAt = Date()
         // Deliberately long: two seconds was not enough for the items to be hosted, and the
         // check read that as "all four are gone".
@@ -88,7 +110,20 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     /// moved them out of view and left the saved position behind. This is what the Settings
     /// button calls; the self-heal scopes it to the items it has evidence about.
     func resetPositions() {
+        // The grouped item too, removed before its keys for the same reason as below.
+        removeGroupedItem()
+        for key in Self.persistedKeys(for: Self.groupedAutosaveName) {
+            Self.autosaveDefaults.removeObject(forKey: key)
+        }
         resetPositions(for: ProviderID.allCases)
+    }
+
+    private static func persistedKeys(for name: String) -> [String] {
+        [
+            "NSStatusItem Preferred Position \(name)",
+            "NSStatusItem Visible \(name)",
+            "NSStatusItem VisibleCC \(name)"
+        ]
     }
 
     private func resetPositions(for providers: [ProviderID]) {
@@ -132,7 +167,18 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         return window.occlusionState.contains(.visible) ? .shown : .hidden
     }
 
-    var allEnabledItemsDisplayed: Bool { hiddenProviders.isEmpty }
+    var allEnabledItemsDisplayed: Bool {
+        isGrouped ? groupedVisibility != .hidden : hiddenProviders.isEmpty
+    }
+
+    /// `visibility(of:)` for the grouped item — the same three states, the same evidence.
+    private var groupedVisibility: Visibility {
+        guard let item = groupedItem else { return .unknown }
+        if !item.isVisible { return .hidden }
+        guard let window = item.button?.window else { return .unknown }
+        guard window.frame.width > 0, window.frame.height > 0 else { return .unknown }
+        return window.occlusionState.contains(.visible) ? .shown : .hidden
+    }
 
     private var hiddenProviders: [ProviderID] {
         ProviderID.allCases.filter {
@@ -163,6 +209,11 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         guard let started = startedAt else { return }
         guard Date().timeIntervalSince(started) >= Self.settlingDelay else {
             scheduleCheck(in: Self.settlingDelay - Date().timeIntervalSince(started))
+            return
+        }
+
+        if isGrouped {
+            checkGroupedVisibility()
             return
         }
 
@@ -213,6 +264,25 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         scheduleCheck(in: Self.confirmationDelay)
     }
 
+    /// The grouped item is the only item, so a confirmed hidden verdict is guard 4's case — the
+    /// OS switch — exactly as with a single provider enabled: no heal, the recovery window.
+    private func checkGroupedVisibility() {
+        hiddenConfirmedAt = [:]
+        guard groupedVisibility == .hidden else {
+            groupedHiddenSince = nil
+            onRecovered?()
+            return
+        }
+        let now = Date()
+        guard let since = groupedHiddenSince, now.timeIntervalSince(since) >= Self.confirmationDelay else {
+            if groupedHiddenSince == nil { groupedHiddenSince = now }
+            scheduleCheck(in: Self.confirmationDelay)
+            return
+        }
+        AppRuntimeState.recordBreadcrumb("menubar-unrecoverable-grouped")
+        onUnrecoverable?()
+    }
+
     private func scheduleCheck(in seconds: TimeInterval) {
         DispatchQueue.main.asyncAfter(deadline: .now() + max(seconds, 1)) { [weak self] in
             self?.checkVisibility()
@@ -222,6 +292,21 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     // MARK: - Enablement
 
     private func syncEnabledItems() {
+        // Read fresh every time, not only when the observation fires: the enablement observer
+        // calls in synchronously, before that task runs, and must already see the new answer —
+        // otherwise checking a second provider would flash its own item before grouping.
+        isGrouped = grouped?.isOn() ?? false
+        if isGrouped {
+            // The same removal unchecking a provider does: AppKit keeps each item's position,
+            // so ungrouping puts them back where the user had them.
+            for provider in ProviderID.allCases {
+                removeItem(for: provider)
+            }
+            addGroupedItemIfNeeded()
+            return
+        }
+        removeGroupedItem()
+
         // Removals first so a newly enabled item never lands to the right of a stale one.
         for provider in ProviderID.allCases where !enabledProviders.isEnabled(provider) {
             removeItem(for: provider)
@@ -270,6 +355,93 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
     }
 
     // MARK: - Label
+
+    // MARK: - Grouped item
+
+    /// Follows the effective grouping switch — the preference and the enabled count. Async on
+    /// purpose: the switch lives inside a dropdown, and swapping items tears that dropdown down,
+    /// which must not happen inside the checkbox's own action.
+    private func observeGrouping() {
+        guard let grouped else { return }
+        withObservationTracking {
+            _ = grouped.isOn()
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.syncEnabledItems()
+                self.observeGrouping()
+            }
+        }
+    }
+
+    /// Mirrors `addItemIfNeeded`. The label is fixed — a plain template ring, no text — so it is
+    /// drawn once, with the same attributed-title path, and never observed.
+    private func addGroupedItemIfNeeded() {
+        guard groupedItem == nil else { return }
+
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        item.autosaveName = Self.groupedAutosaveName
+        item.behavior = []
+        item.isVisible = true
+
+        let popover = NSPopover()
+        popover.behavior = .transient
+        popover.animates = true
+        popover.delegate = self
+
+        if let button = item.button {
+            button.target = self
+            button.action = #selector(toggleGroupedPopover(_:))
+            button.sendAction(on: [.leftMouseUp])
+            button.setAccessibilityIdentifier("menubar.grouped")
+            let label = GroupedMenuBarLabel.make()
+            button.image = nil
+            button.imagePosition = .noImage
+            button.attributedTitle = Self.attributedTitle(symbol: Self.symbolImage(for: label), text: "", label: label)
+            button.setAccessibilityLabel(label.accessibilityLabel)
+        }
+        item.length = NSStatusItem.variableLength
+
+        groupedItem = item
+        groupedPopover = popover
+        groupedHiddenSince = nil
+    }
+
+    private func removeGroupedItem() {
+        guard let item = groupedItem else { return }
+        let popover = groupedPopover
+        groupedItem = nil
+        groupedPopover = nil
+        groupedHiddenSince = nil
+        popover?.performClose(nil)
+        popover?.contentViewController = nil
+        NSStatusBar.system.removeStatusItem(item)
+    }
+
+    @objc private func toggleGroupedPopover(_ sender: NSStatusBarButton) {
+        toggleGrouped()
+    }
+
+    /// `toggle(_:)` for the grouped item.
+    func toggleGrouped() {
+        guard let grouped, let popover = groupedPopover, let button = groupedItem?.button else { return }
+        if popover.isShown {
+            popover.performClose(nil)
+            return
+        }
+        for other in entries.values where other.popover.isShown {
+            other.popover.performClose(nil)
+        }
+        let hosting = NSHostingController(
+            rootView: grouped.content().background(MenuMaterialBackground())
+        )
+        hosting.sizingOptions = [.preferredContentSize]
+        popover.contentViewController = hosting
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        button.highlight(true)
+        NSApp.activate(ignoringOtherApps: true)
+        popover.contentViewController?.view.window?.makeKey()
+    }
 
     private func observeLabel(_ provider: ProviderID, definition: Provider) {
         withObservationTracking {
@@ -398,9 +570,17 @@ final class StatusItemController: NSObject, NSPopoverDelegate {
         for entry in entries.values where entry.popover.isShown {
             entry.popover.performClose(nil)
         }
+        if let groupedPopover, groupedPopover.isShown {
+            groupedPopover.performClose(nil)
+        }
     }
 
     func popoverDidClose(_ notification: Notification) {
+        if let popover = notification.object as? NSPopover, popover === groupedPopover {
+            groupedItem?.button?.highlight(false)
+            popover.contentViewController = nil
+            return
+        }
         guard let popover = notification.object as? NSPopover,
               let entry = entries.values.first(where: { $0.popover === popover }) else { return }
         entry.item.button?.highlight(false)

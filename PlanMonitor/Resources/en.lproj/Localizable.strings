@@ -193,9 +193,6 @@
 "soon" = "soon";
 "Imagine" = "Imagine";
 "Voice" = "Voice";
-"Usage access still needs approval." = "Usage access still needs approval.";
-"Usage access still needs approval. Open the sign-in window to finish." = "Usage access still needs approval. Open the sign-in window to finish.";
-"Approve usage access" = "Approve usage access";
 "Connecting SuperGrok usage..." = "Connecting SuperGrok usage...";
 "Approval failed. Sign in again." = "Approval failed. Sign in again.";
 
@@ -353,7 +350,6 @@
 "Limit reached" = "Limit reached";
 "Go requests are paused until the reset unless Extra usage is on." = "Go requests are paused until the reset unless Extra usage is on.";
 "Go limits: not available for this key or workspace." = "Go limits: not available for this key or workspace.";
-"Give this key Budgets › Read to see Console spend." = "Give this key Budgets › Read to see Console spend.";
 "No usage data yet" = "No usage data yet";
 "Monthly budget" = "Monthly budget";
 "A full ring is your monthly budget." = "A full ring is your monthly budget.";
@@ -368,3 +364,9 @@
 "Remove key" = "Remove key";
 "Member" = "Member";
 "Whole workspace" = "Whole workspace";
+"Checking sign-in…" = "Checking sign-in…";
+"Couldn't confirm the session. Retrying shortly." = "Couldn't confirm the session. Retrying shortly.";
+"Group into one menu-bar item" = "Group into one menu-bar item";
+"Shows every enabled provider under one icon." = "Shows every enabled provider under one icon.";
+"One item" = "One item";
+"Balances" = "Balances";

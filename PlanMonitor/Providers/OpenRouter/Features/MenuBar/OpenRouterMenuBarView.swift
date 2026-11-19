@@ -27,25 +27,29 @@ struct OpenRouterMenuBarView: View {
                     .padding(.horizontal, 16)
             }
 
-            ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: 10) {
-                    if viewModel.connectionState.showsBudgets {
-                        scrollingSections
-                    } else {
-                        disconnectedContent
+            // A rejected key shows no figures at all — only the banner and Replace key above —
+            // so there is nothing to scroll.
+            if keyRejectionReason == nil {
+                ScrollView(.vertical) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if viewModel.connectionState.showsBudgets {
+                            scrollingSections
+                        } else {
+                            disconnectedContent
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(
+                        GeometryReader { proxy in
+                            Color.clear.preference(key: BodyHeightKey.self, value: proxy.size.height)
+                        }
+                    )
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear.preference(key: BodyHeightKey.self, value: proxy.size.height)
-                    }
-                )
+                .frame(height: min(max(bodyHeight, 1), maxBodyHeight))
+                .onPreferenceChange(BodyHeightKey.self) { bodyHeight = $0 }
             }
-            .frame(height: min(max(bodyHeight, 1), maxBodyHeight))
-            .onPreferenceChange(BodyHeightKey.self) { bodyHeight = $0 }
 
             Divider()
 
@@ -85,12 +89,28 @@ struct OpenRouterMenuBarView: View {
     @ViewBuilder
     private var pinnedCredit: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if case .invalidKey(let reason) = viewModel.connectionState {
+            if let reason = keyRejectionReason {
+                // The key was refused: old figures would be stale at best, so none are shown —
+                // the reason and the way out instead. The key stays stored; a later good poll
+                // reconnects by itself.
                 banner(reason, systemImage: "exclamationmark.triangle", tint: .red)
+                Button(String(localized: "Replace key")) {
+                    WindowRouter.shared.open(.connectOpenRouter)
+                }
+                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity)
+            } else {
+                creditSection
             }
-            creditSection
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.bottom, keyRejectionReason == nil ? 0 : 10)
+    }
+
+    /// The reason a stored key was refused, while it is.
+    private var keyRejectionReason: String? {
+        if case .invalidKey(let reason) = viewModel.connectionState { return reason }
+        return nil
     }
 
     /// Everything that can grow with the size of the account.
@@ -395,12 +415,16 @@ struct OpenRouterMenuBarView: View {
     /// page, not a menu.
     private var footer: some View {
         VStack(spacing: 0) {
-            if let error = viewModel.errorMessage {
+            // While the key is refused the banner already says why, and no figures are shown
+            // for an "updated" line to describe.
+            if keyRejectionReason != nil {
+                EmptyView()
+            } else if let error = viewModel.errorMessage {
                 statusText(error, tint: .red)
             } else if let degraded = viewModel.degradedMessage {
                 statusText(degraded, tint: .orange)
             }
-            if let updated = viewModel.lastUpdated {
+            if keyRejectionReason == nil, let updated = viewModel.lastUpdated {
                 statusText(
                     viewModel.isStale
                         ? String(localized: "Stale — last updated \(relative(updated))")
