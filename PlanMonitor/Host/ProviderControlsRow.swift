@@ -20,7 +20,7 @@ struct ProviderControlsRow: View {
                 // provider's dropdown keeps its exact layout. Offered only where it can apply.
                 .overlay(alignment: .trailing) {
                     if GroupedMenuRule.offersSwitch(enabledCount: providers.values.count) {
-                        Toggle(String(localized: "One item"), isOn: $preferences.groupMenuBarItems)
+                        Toggle(String(localized: "Group icons"), isOn: $preferences.groupMenuBarItems)
                             .toggleStyle(.switch)
                             .controlSize(.mini)
                             .font(.caption2)
