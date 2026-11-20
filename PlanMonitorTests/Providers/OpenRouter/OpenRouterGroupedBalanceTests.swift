@@ -23,7 +23,8 @@ struct OpenRouterGroupedBalanceTests {
         let line = try #require(lines.first)
         #expect(lines.count == 1)
         #expect(line.amount == Money.format(Decimal(string: "12.34", locale: Locale(identifier: "en_US_POSIX"))!, style: .codeBefore))
-        #expect(line.amount.contains("12.34"))
+        #expect(line.amount?.contains("12.34") == true)
+        #expect(line.action == nil)
         #expect(!line.critical)
     }
 
@@ -40,8 +41,23 @@ struct OpenRouterGroupedBalanceTests {
         #expect(OpenRouterGroupedBalance.lines(snapshot: .empty, connectionState: .connected(identity), style: .default).isEmpty)
     }
 
-    @Test(arguments: [ConnectionState.disconnected, .validating, .invalidKey("refused")])
-    func onlyAConnectedKeyShowsAFigure(_ state: ConnectionState) {
-        #expect(OpenRouterGroupedBalance.lines(snapshot: snapshot(purchased: 50, used: 10), connectionState: state, style: .default).isEmpty)
+    @Test func disconnectedIsTheNameAndConnect() throws {
+        let lines = OpenRouterGroupedBalance.lines(snapshot: snapshot(purchased: 50, used: 10), connectionState: .disconnected, style: .default)
+        let line = try #require(lines.first)
+        #expect(lines.count == 1)
+        #expect(line.amount == nil)
+        #expect(line.action == BalanceAction(title: String(localized: "Connect"), window: .connectOpenRouter))
+    }
+
+    @Test func aRefusedKeyShowsNoFigureOnlyReplaceKey() throws {
+        let lines = OpenRouterGroupedBalance.lines(snapshot: snapshot(purchased: 50, used: 10), connectionState: .invalidKey("refused"), style: .default)
+        let line = try #require(lines.first)
+        #expect(lines.count == 1)
+        #expect(line.amount == nil)
+        #expect(line.action == BalanceAction(title: String(localized: "Replace key"), window: .connectOpenRouter))
+    }
+
+    @Test func validatingShowsNothing() {
+        #expect(OpenRouterGroupedBalance.lines(snapshot: snapshot(purchased: 50, used: 10), connectionState: .validating, style: .default).isEmpty)
     }
 }

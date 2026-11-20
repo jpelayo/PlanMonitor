@@ -61,7 +61,14 @@ struct GroupedMenuTests {
         #expect(CompactGaugeRow.percentText(CompactGaugeRow.clamped(1.3)) == "100%")
         #expect(CompactGaugeRow.percentText(CompactGaugeRow.clamped(-0.2)) == "0%")
         #expect(CompactGaugeRow.percentText(CompactGaugeRow.clamped(.nan)) == "0%")
-        #expect(CompactGaugeRow.percentText(CompactGaugeRow.clamped(0.426)) == "43%")
+    }
+
+    /// Truncated like every dropdown's "N% used", and a whole percent survives the trip through a
+    /// fraction (29 / 100 * 100 is 28.999… in floating point).
+    @Test func percentsTruncateLikeTheDropdowns() {
+        #expect(CompactGaugeRow.percentText(CompactGaugeRow.clamped(0.426)) == "42%")
+        #expect(CompactGaugeRow.percentText(CompactGaugeRow.clamped(29.0 / 100)) == "29%")
+        #expect(CompactGaugeRow.percentText(CompactGaugeRow.clamped(57.0 / 100)) == "57%")
     }
 
     private let now = Date(timeIntervalSince1970: 1_800_000_000)

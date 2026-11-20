@@ -51,18 +51,32 @@ struct OpenCodeGroupedSection: View {
                 GroupedSectionNote(text: String(localized: "No usage data yet"))
             }
         } else {
+            // The same bars as `OpenCodeMenuBarView.goSection`: the 5-hour plain, the weekly with
+            // seven segments, the monthly one per day of its month, both with the pace marker.
             if let window = snapshot.go?.rolling {
                 windowRow(String(localized: "5-hour limit"), window)
             }
             if let window = snapshot.go?.weekly {
-                windowRow(String(localized: "Weekly limit"), window)
+                windowRow(
+                    String(localized: "Weekly limit"),
+                    window,
+                    segments: 7,
+                    duration: UsageWindowKind.sevenDays
+                )
             }
             if let window = snapshot.go?.monthly {
-                windowRow(String(localized: "Monthly limit"), window)
+                windowRow(
+                    String(localized: "Monthly limit"),
+                    window,
+                    segments: OpenCodeGoUsage.monthlyDays(endingAt: window.resetsAt),
+                    duration: OpenCodeGoUsage.monthlyDuration(endingAt: window.resetsAt)
+                )
             }
             if snapshot.budget != nil, let used = snapshot.usedFraction {
                 CompactGaugeRow(
-                    title: String(localized: "Budget"),
+                    title: snapshot.isWorkspaceTotal
+                        ? String(localized: "Workspace spend this month")
+                        : String(localized: "Spend this month"),
                     fraction: used,
                     // A reached budget is critical whatever the arithmetic says, as on the bar.
                     color: OpenCodeSeverity(snapshot.exceeded ? 1 : used).color,
@@ -75,13 +89,22 @@ struct OpenCodeGroupedSection: View {
         }
     }
 
-    private func windowRow(_ title: String, _ window: OpenCodeGoWindow) -> some View {
+    /// `OpenCodeWindowCard`'s bar: segmented with the pace marker when it has segments, plain
+    /// otherwise.
+    private func windowRow(
+        _ title: String,
+        _ window: OpenCodeGoWindow,
+        segments: Int? = nil,
+        duration: TimeInterval? = nil
+    ) -> some View {
         let used = window.effectivePercent / 100
         return CompactGaugeRow(
             title: title,
             fraction: used,
             color: OpenCodeSeverity(used).color,
-            resetsAt: window.resetsAt
+            resetsAt: window.resetsAt,
+            segments: segments,
+            marker: UsageWindowKind.elapsedFraction(resetsAt: window.resetsAt, duration: duration)
         )
     }
 

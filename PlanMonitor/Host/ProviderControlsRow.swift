@@ -21,8 +21,8 @@ struct ProviderControlsRow: View {
                 .overlay(alignment: .trailing) {
                     if GroupedMenuRule.offersSwitch(enabledCount: providers.values.count) {
                         Toggle(String(localized: "One item"), isOn: $preferences.groupMenuBarItems)
-                            .toggleStyle(.checkbox)
-                            .controlSize(.small)
+                            .toggleStyle(.switch)
+                            .controlSize(.mini)
                             .font(.caption2)
                             .help(String(localized: "Group into one menu-bar item"))
                     }

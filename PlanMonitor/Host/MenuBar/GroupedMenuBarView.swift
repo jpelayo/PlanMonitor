@@ -20,6 +20,8 @@ struct GroupedMenuBarView: View {
     var body: some View {
         let shown = enabledEntries
         let balances = shown.flatMap { $0.balances() }
+        // Gauge providers only: OpenRouter and Claude-API have no section, just Balances lines.
+        let sections = shown.compactMap { entry in entry.section.map { (id: entry.id, view: $0) } }
 
         VStack(alignment: .leading, spacing: 0) {
             header(shown)
@@ -27,28 +29,30 @@ struct GroupedMenuBarView: View {
                 .padding(.top, 16)
                 .padding(.bottom, 10)
 
-            Divider()
+            if !sections.isEmpty {
+                Divider()
 
-            ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(shown.enumerated()), id: \.element.id) { index, entry in
-                        if index > 0 {
-                            Divider().padding(.vertical, 8)
+                ScrollView(.vertical) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(sections.enumerated()), id: \.element.id) { index, section in
+                            if index > 0 {
+                                Divider().padding(.vertical, 8)
+                            }
+                            section.view()
                         }
-                        entry.section()
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(
+                        GeometryReader { proxy in
+                            Color.clear.preference(key: GroupedBodyHeightKey.self, value: proxy.size.height)
+                        }
+                    )
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear.preference(key: GroupedBodyHeightKey.self, value: proxy.size.height)
-                    }
-                )
+                .frame(height: min(max(bodyHeight, 1), maxBodyHeight))
+                .onPreferenceChange(GroupedBodyHeightKey.self) { bodyHeight = $0 }
             }
-            .frame(height: min(max(bodyHeight, 1), maxBodyHeight))
-            .onPreferenceChange(GroupedBodyHeightKey.self) { bodyHeight = $0 }
 
             if !balances.isEmpty {
                 Divider()
@@ -87,16 +91,30 @@ struct GroupedMenuBarView: View {
                 HStack(spacing: 6) {
                     Text(verbatim: line.provider)
                         .font(.caption)
-                    Text(line.kind)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    if !line.kind.isEmpty {
+                        Text(line.kind)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                     Spacer(minLength: 8)
-                    Text(verbatim: line.amount)
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(line.critical ? Color.red : .primary)
+                    if let date = line.date {
+                        Text(verbatim: date)
+                            .font(.caption2.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    if let amount = line.amount {
+                        Text(verbatim: amount)
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(line.critical ? Color.red : .primary)
+                    }
+                    if let action = line.action {
+                        Button(action.title) { WindowRouter.shared.open(action.window) }
+                            .controlSize(.small)
+                    }
                 }
-                .accessibilityElement(children: .combine)
+                .accessibilityElement(children: .contain)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

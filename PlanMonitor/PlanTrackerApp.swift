@@ -168,7 +168,7 @@ struct PlanTrackerApp: App {
             ),
             GroupedMenuEntry(
                 id: .openrouter,
-                section: { AnyView(OpenRouterGroupedSection(viewModel: openRouter)) },
+                section: nil,
                 refresh: { await openRouter.refresh() },
                 isRefreshing: { openRouter.isLoading },
                 nextRefreshAt: { openRouter.nextRefreshAt },
@@ -184,7 +184,7 @@ struct PlanTrackerApp: App {
             ),
             GroupedMenuEntry(
                 id: .claudeapi,
-                section: { AnyView(ClaudePlatformGroupedSection(viewModel: claudeAPI)) },
+                section: nil,
                 refresh: { await claudeAPI.refreshUsage() },
                 isRefreshing: { claudeAPI.isLoading },
                 nextRefreshAt: { claudeAPI.nextRefreshAt },

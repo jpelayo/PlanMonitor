@@ -35,19 +35,30 @@ struct BalanceLine: Identifiable, Equatable {
     let id: String
     /// The provider's display name.
     let provider: String
-    /// What the figure is: "Credit", "Credit left", "To be invoiced".
-    let kind: String
-    /// Already formatted by the provider.
-    let amount: String
+    /// What the figure is: "Credit", "Credit left", "To be invoiced". Empty on an action line.
+    var kind: String = ""
+    /// When the figure resets or expires, already formatted by the provider as its dropdown writes it.
+    var date: String? = nil
+    /// Already formatted by the provider. `nil` on an action line.
+    var amount: String? = nil
     var critical = false
+    /// Signed out or key refused: the provider's name and this button where the amount goes.
+    var action: BalanceAction? = nil
+}
+
+/// The one button a money provider's Balances line shows when it has no figure to show.
+struct BalanceAction: Equatable {
+    let title: String
+    let window: WindowRouter.AppWindow
 }
 
 /// What the grouped dropdown needs from one provider. Built in the composition root next to the
 /// provider's own status-item definition, from the same view model.
 struct GroupedMenuEntry {
     let id: ProviderID
-    /// The provider's compact section: its own view, reading only its own view model.
-    let section: () -> AnyView
+    /// The provider's compact section: its own view, reading only its own view model. `nil` for
+    /// the money providers (OpenRouter, Claude-API), which show only their Balances lines.
+    let section: (() -> AnyView)?
     let refresh: @MainActor @Sendable () async -> Void
     let isRefreshing: () -> Bool
     let nextRefreshAt: () -> Date?

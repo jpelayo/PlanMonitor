@@ -23,8 +23,25 @@ struct ClaudePlatformGroupedBalanceTests {
         let line = try #require(lines.first)
         #expect(lines.map(\.id) == ["claudeapi.creditLeft"])
         #expect(line.amount == source.format(18_000, style: .default))
-        #expect(line.amount.contains("180"))
+        #expect(line.amount?.contains("180") == true)
         #expect(!line.critical)
+    }
+
+    private let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    @Test func theCreditRowCarriesThePromotionalExpiry() throws {
+        var source = snapshot(promo: 15_000, prepaid: 3_000)
+        let expiry = now.addingTimeInterval(20 * 24 * 3600)
+        source.promoExpiresAt = expiry
+        let line = try #require(ClaudePlatformGroupedBalance.lines(snapshot: source, isSignedIn: true, style: .default, now: now).first)
+        #expect(line.date == expiry.formatted(.dateTime.day().month(.abbreviated)))
+    }
+
+    @Test func noDateOnceTheExpiryHasPassedOrIsUnknown() throws {
+        var source = snapshot(prepaid: 3_000)
+        #expect(try #require(ClaudePlatformGroupedBalance.lines(snapshot: source, isSignedIn: true, style: .default, now: now).first).date == nil)
+        source.promoExpiresAt = now.addingTimeInterval(-60)
+        #expect(try #require(ClaudePlatformGroupedBalance.lines(snapshot: source, isSignedIn: true, style: .default, now: now).first).date == nil)
     }
 
     @Test func aPendingInvoiceIsItsOwnLine() {
@@ -41,8 +58,12 @@ struct ClaudePlatformGroupedBalanceTests {
         #expect(ClaudePlatformGroupedBalance.lines(snapshot: snapshot(), isSignedIn: true, style: .default).isEmpty)
     }
 
-    @Test func signedOutShowsNoFigure() {
-        #expect(ClaudePlatformGroupedBalance.lines(snapshot: snapshot(prepaid: 500, invoice: 310), isSignedIn: false, style: .default).isEmpty)
+    @Test func signedOutIsTheNameAndSignInWithNoFigure() throws {
+        let lines = ClaudePlatformGroupedBalance.lines(snapshot: snapshot(prepaid: 500, invoice: 310), isSignedIn: false, style: .default)
+        let line = try #require(lines.first)
+        #expect(lines.count == 1)
+        #expect(line.amount == nil)
+        #expect(line.action == BalanceAction(title: String(localized: "Sign In"), window: .loginClaudeAPI))
     }
 
     @Test func noCreditLeftIsCritical() throws {

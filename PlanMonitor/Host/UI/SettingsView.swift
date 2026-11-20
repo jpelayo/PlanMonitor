@@ -65,6 +65,7 @@ struct SettingsView: View {
                 if GroupedMenuRule.offersSwitch(enabledCount: providers.values.count) {
                     VStack(alignment: .leading, spacing: 2) {
                         Toggle(String(localized: "Group into one menu-bar item"), isOn: $preferences.groupMenuBarItems)
+                            .toggleStyle(.switch)
                         Text(String(localized: "Shows every enabled provider under one icon."))
                             .font(.caption2)
                             .foregroundStyle(.secondary)

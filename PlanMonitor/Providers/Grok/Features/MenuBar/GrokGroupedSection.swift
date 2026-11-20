@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Grok's section of the grouped dropdown: the weekly SuperGrok window, one line. Reads only
+/// Grok's section of the grouped dropdown: the bar its dropdown draws, one line. Reads only
 /// Grok's own view model. Like the dropdown since 2026-11-19, it never opens a window by itself.
 struct GrokGroupedSection: View {
     @Bindable var viewModel: GrokUsageViewModel
@@ -38,12 +38,28 @@ struct GrokGroupedSection: View {
 
     @ViewBuilder
     private var rows: some View {
-        if let used = viewModel.usageData.weeklyUtilization {
+        // The same either/or as `GrokMenuBarView.usageSection`: the weekly pool (seven segments,
+        // the white pace marker) or, without one, the monthly allowance (plain bar).
+        let usage = viewModel.usageData
+        if let used = usage.usedPercent {
             CompactGaugeRow(
-                title: String(localized: "Weekly limit"),
-                fraction: used,
-                color: colorForUtilization(used * 100),
-                resetsAt: viewModel.usageData.weeklyResetsAt
+                title: String(localized: "Weekly SuperGrok Limit"),
+                fraction: used / 100,
+                color: colorForUtilization(used),
+                resetsAt: usage.weeklyResetsAt,
+                segments: 7,
+                marker: UsageWindowKind.elapsedFraction(resetsAt: usage.weeklyResetsAt, duration: 7 * 24 * 3600)
+            )
+            if let error = viewModel.errorMessage {
+                GroupedSectionNote(text: error, tint: .red)
+            }
+        } else if let limit = usage.monthlyLimit, let used = usage.monthlyUsed, limit > 0 {
+            let percent = min((used / limit) * 100, 100)
+            CompactGaugeRow(
+                title: String(localized: "Monthly included"),
+                fraction: percent / 100,
+                color: colorForUtilization(percent),
+                resetsAt: usage.monthlyResetsAt
             )
             if let error = viewModel.errorMessage {
                 GroupedSectionNote(text: error, tint: .red)
