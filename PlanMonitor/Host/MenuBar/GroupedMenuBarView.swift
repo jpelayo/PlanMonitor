@@ -13,8 +13,12 @@ struct GroupedMenuBarView: View {
     @State private var bodyHeight: CGFloat = 0
 
     /// In `ProviderID` order — the order the entries are built in — enabled ones only.
+    /// Enabled ones only, in the user's order (Settings › Grouped menu) — sections and Balances
+    /// rows alike.
     private var enabledEntries: [GroupedMenuEntry] {
-        entries.filter { providers.isEnabled($0.id) }
+        let enabled = entries.filter { providers.isEnabled($0.id) }
+        let order = GroupedMenuOrder.sorted(enabled.map(\.id), by: preferences.groupedOrder)
+        return order.compactMap { id in enabled.first { $0.id == id } }
     }
 
     var body: some View {
@@ -67,6 +71,8 @@ struct GroupedMenuBarView: View {
         }
         .frame(width: 320)
         .padding(.bottom, 10)
+        .environment(\.groupedTitleSize, preferences.groupedTitleSize)
+        .environment(\.groupedAmountSize, preferences.groupedAmountSize)
     }
 
     private func header(_ shown: [GroupedMenuEntry]) -> some View {
@@ -88,26 +94,34 @@ struct GroupedMenuBarView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
             ForEach(lines) { line in
-                HStack(spacing: 6) {
+                // The name follows the title size, the figure the amount size (Settings › Grouped
+                // menu). Name, date and figure never truncate; only the kind may shrink.
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(verbatim: line.provider)
-                        .font(.caption)
+                        .font(.system(size: preferences.groupedTitleSize.points, weight: .semibold))
+                        .fixedSize()
+                        .layoutPriority(1)
                     if !line.kind.isEmpty {
                         Text(line.kind)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
                     Spacer(minLength: 8)
                     if let date = line.date {
                         Text(verbatim: date)
                             .font(.caption2.monospacedDigit())
                             .foregroundStyle(.secondary)
-                            .lineLimit(1)
+                            .fixedSize()
+                            .layoutPriority(1)
                     }
                     if let amount = line.amount {
                         Text(verbatim: amount)
-                            .font(.caption.monospacedDigit())
+                            .font(.system(size: preferences.groupedAmountSize.points).monospacedDigit())
                             .foregroundStyle(line.critical ? Color.red : .primary)
+                            .fixedSize()
+                            .layoutPriority(1)
                     }
                     if let action = line.action {
                         Button(action.title) { WindowRouter.shared.open(action.window) }

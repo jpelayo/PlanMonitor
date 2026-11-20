@@ -119,11 +119,13 @@ struct GroupedSectionHeader: View {
     var isDemo = false
     var actionTitle: String? = nil
     var action: (() -> Void)? = nil
+    /// Settings › Grouped menu › Provider name size, set by `GroupedMenuBarView`.
+    @Environment(\.groupedTitleSize) private var titleSize
 
     var body: some View {
         HStack(spacing: 6) {
             Text(verbatim: title)
-                .font(.subheadline.weight(.semibold))
+                .font(.system(size: titleSize.points, weight: .semibold))
             if let detail, !detail.isEmpty {
                 Text(verbatim: detail)
                     .font(.caption)

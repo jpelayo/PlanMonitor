@@ -363,5 +363,12 @@
 "Couldn't confirm the session. Retrying shortly." = "No se ha podido confirmar la sesión. Se reintentará en breve.";
 "Group into one menu-bar item" = "Agrupar en un solo icono de la barra de menús";
 "Shows every enabled provider under one icon." = "Muestra todos los proveedores activados bajo un solo icono.";
+"Grouped menu" = "Menú agrupado";
+"Provider name size" = "Tamaño del nombre del proveedor";
+"Amount size" = "Tamaño de los importes";
+"Order" = "Orden";
+"Drag to reorder." = "Arrastra para reordenar.";
+"Big" = "Grande";
+"Huge" = "Enorme";
 "One item" = "Un icono";
 "Balances" = "Saldos";

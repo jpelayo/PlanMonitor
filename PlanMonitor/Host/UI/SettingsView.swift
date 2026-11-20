@@ -11,16 +11,35 @@ struct SettingsView: View {
     @Bindable var preferences: GlobalPreferences
     /// Forgets the saved menu bar positions and rebuilds the items at the default spot.
     let resetMenuBarPositions: () -> Void
-    @State private var selectedProvider: ProviderID = .claude
+    /// A tab of the per-provider section: one per enabled provider, plus the grouped dropdown's
+    /// own settings while grouping is offered — a tab like a provider, never a section of its own.
+    private enum SettingsTab: Hashable {
+        case provider(ProviderID)
+        case grouped
+    }
+
+    @State private var selectedTab: SettingsTab = .provider(.claude)
 
     private var enabledProviderList: [ProviderID] {
         ProviderID.allCases.filter { providers.isEnabled($0) }
     }
 
-    /// Keeps the tab on an enabled provider when the set changes underneath it.
+    private var tabs: [SettingsTab] {
+        enabledProviderList.map(SettingsTab.provider)
+            + (GroupedMenuRule.offersSwitch(enabledCount: providers.values.count) ? [.grouped] : [])
+    }
+
+    private func title(for tab: SettingsTab) -> String {
+        switch tab {
+        case .provider(let provider): provider.displayName
+        case .grouped: String(localized: "Grouped menu")
+        }
+    }
+
+    /// Keeps the selection on a tab that still exists when the set changes underneath it.
     private func repairSelection() {
-        if !providers.isEnabled(selectedProvider) {
-            selectedProvider = enabledProviderList.first ?? .claude
+        if !tabs.contains(selectedTab) {
+            selectedTab = tabs.first ?? .provider(.claude)
         }
     }
 
@@ -110,7 +129,7 @@ struct SettingsView: View {
             // when the tabs are wider than the row — six were, and the overflow ate the Form's
             // insets. Measured, not counted, so a new provider or a longer name falls back alone.
             Section {
-                if enabledProviderList.count > 1 {
+                if tabs.count > 1 {
                     ViewThatFits(in: .horizontal) {
                         providerPicker
                             .pickerStyle(.segmented)
@@ -119,16 +138,17 @@ struct SettingsView: View {
                             .pickerStyle(.menu)
                     }
                 }
-                switch selectedProvider {
-                case .claude: claudeControls
-                case .codex: codexControls
-                case .grok: grokControls
-                case .openrouter: openRouterControls
-                case .claudeapi: claudePlatformControls
-                case .opencode: openCodeControls
+                switch selectedTab {
+                case .provider(.claude): claudeControls
+                case .provider(.codex): codexControls
+                case .provider(.grok): grokControls
+                case .provider(.openrouter): openRouterControls
+                case .provider(.claudeapi): claudePlatformControls
+                case .provider(.opencode): openCodeControls
+                case .grouped: groupedMenuControls
                 }
             } header: {
-                Text(enabledProviderList.count > 1 ? String(localized: "Providers") : selectedProvider.displayName)
+                Text(tabs.count > 1 ? String(localized: "Providers") : title(for: selectedTab))
             }
             .onAppear { repairSelection() }
             .onChange(of: providers.values) { _, _ in repairSelection() }
@@ -160,10 +180,50 @@ struct SettingsView: View {
         }
     }
 
+    /// The "Grouped menu" tab: the provider-name size, the dollar-amount size, and the order of all
+    /// six providers (sections and Balances rows), dragged into place.
+    @ViewBuilder
+    private var groupedMenuControls: some View {
+        Picker(String(localized: "Provider name size"), selection: $preferences.groupedTitleSize) {
+            ForEach(GroupedTextSize.allCases, id: \.self) { size in
+                Text(size.displayName).tag(size)
+            }
+        }
+        .pickerStyle(.menu)
+
+        Picker(String(localized: "Amount size"), selection: $preferences.groupedAmountSize) {
+            ForEach(GroupedTextSize.allCases, id: \.self) { size in
+                Text(size.displayName).tag(size)
+            }
+        }
+        .pickerStyle(.menu)
+
+        VStack(alignment: .leading, spacing: 2) {
+            Text(String(localized: "Order"))
+            Text(String(localized: "Drag to reorder."))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+
+        // Every provider, enabled or not, so a disabled one keeps its place for when it
+        // comes back; disabled ones read secondary.
+        ForEach(preferences.groupedOrder) { provider in
+            HStack(spacing: 8) {
+                Image(systemName: "line.3.horizontal")
+                    .foregroundStyle(.secondary)
+                Text(provider.displayName)
+                    .foregroundStyle(providers.isEnabled(provider) ? .primary : .secondary)
+            }
+        }
+        .onMove { source, destination in
+            preferences.groupedOrder.move(fromOffsets: source, toOffset: destination)
+        }
+    }
+
     private var providerPicker: some View {
-        Picker(String(localized: "Provider"), selection: $selectedProvider) {
-            ForEach(enabledProviderList) { provider in
-                Text(provider.displayName).tag(provider)
+        Picker(String(localized: "Provider"), selection: $selectedTab) {
+            ForEach(tabs, id: \.self) { tab in
+                Text(title(for: tab)).tag(tab)
             }
         }
     }

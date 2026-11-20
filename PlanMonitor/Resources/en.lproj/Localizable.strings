@@ -363,5 +363,12 @@
 "Couldn't confirm the session. Retrying shortly." = "Couldn't confirm the session. Retrying shortly.";
 "Group into one menu-bar item" = "Group into one menu-bar item";
 "Shows every enabled provider under one icon." = "Shows every enabled provider under one icon.";
+"Grouped menu" = "Grouped menu";
+"Provider name size" = "Provider name size";
+"Amount size" = "Amount size";
+"Order" = "Order";
+"Drag to reorder." = "Drag to reorder.";
+"Big" = "Big";
+"Huge" = "Huge";
 "One item" = "One item";
 "Balances" = "Balances";

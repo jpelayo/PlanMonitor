@@ -40,6 +40,21 @@ final class GlobalPreferences {
         didSet { defaults.set(groupMenuBarItems, forKey: Keys.groupMenuBarItems) }
     }
 
+    /// Settings › Grouped menu. Read only by the grouped dropdown; like `groupMenuBarItems`,
+    /// nothing is written until the user picks, and nothing fans out to the view models.
+    var groupedTitleSize: GroupedTextSize {
+        didSet { defaults.set(groupedTitleSize.rawValue, forKey: Keys.groupedTitleSize) }
+    }
+
+    var groupedAmountSize: GroupedTextSize {
+        didSet { defaults.set(groupedAmountSize.rawValue, forKey: Keys.groupedAmountSize) }
+    }
+
+    /// Every provider once, in the user's order (`GroupedMenuOrder.repaired`).
+    var groupedOrder: [ProviderID] {
+        didSet { defaults.set(groupedOrder.map(\.rawValue), forKey: Keys.groupedOrder) }
+    }
+
     var appLanguage: AppLanguage {
         didSet {
             defaults.set(appLanguage.rawValue, forKey: Keys.language)
@@ -97,6 +112,9 @@ final class GlobalPreferences {
         static let showRemaining = "showRemainingPercent"
         static let language = "appLanguage"
         static let groupMenuBarItems = "groupMenuBarItems"
+        static let groupedTitleSize = "groupedMenu.titleSize"
+        static let groupedAmountSize = "groupedMenu.amountSize"
+        static let groupedOrder = "groupedMenu.order"
     }
 
     private let defaults: UserDefaults
@@ -113,6 +131,9 @@ final class GlobalPreferences {
         pollingIntervalMinutes = Self.repairedPollingInterval(storedInterval)
         showRemainingPercent = defaults.object(forKey: Keys.showRemaining) as? Bool ?? true
         groupMenuBarItems = defaults.object(forKey: Keys.groupMenuBarItems) as? Bool ?? false
+        groupedTitleSize = defaults.string(forKey: Keys.groupedTitleSize).flatMap(GroupedTextSize.init(rawValue:)) ?? .regular
+        groupedAmountSize = defaults.string(forKey: Keys.groupedAmountSize).flatMap(GroupedTextSize.init(rawValue:)) ?? .regular
+        groupedOrder = GroupedMenuOrder.repaired(defaults.stringArray(forKey: Keys.groupedOrder))
         appLanguage = defaults.string(forKey: Keys.language).flatMap(AppLanguage.init(rawValue:)) ?? .system
         launchAtLogin = readLoginItem ? LoginItemController.isEnabled : false
 

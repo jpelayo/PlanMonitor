@@ -17,6 +17,69 @@ nonisolated enum GroupedMenuRule {
     }
 }
 
+/// The user's four text sizes for the grouped dropdown (Settings › Grouped menu): one control for
+/// the provider names (section titles and the dollar rows' names), one for the dollar amounts.
+nonisolated enum GroupedTextSize: String, CaseIterable, Sendable {
+    case small
+    case regular
+    case big
+    case huge
+
+    /// The user's own steps (2026-11-20). Regular is today's subheadline title.
+    var points: CGFloat {
+        switch self {
+        case .small: 9
+        case .regular: 11
+        case .big: 15
+        case .huge: 18
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .small: String(localized: "Small")
+        case .regular: String(localized: "Regular")
+        case .big: String(localized: "Big")
+        case .huge: String(localized: "Huge")
+        }
+    }
+}
+
+/// The user's order for the grouped dropdown: all six providers, sections and Balances rows alike.
+nonisolated enum GroupedMenuOrder {
+    /// Stored raw ids → every provider once, in the user's order. Known ids keep their stored
+    /// place; a provider missing from storage (a new one) is appended in `ProviderID` order, so it
+    /// lands last; unknown or repeated ids are skipped. Nothing stored → `ProviderID.allCases`.
+    static func repaired(_ stored: [String]?) -> [ProviderID] {
+        var order: [ProviderID] = []
+        for raw in stored ?? [] {
+            if let id = ProviderID(rawValue: raw), !order.contains(id) {
+                order.append(id)
+            }
+        }
+        for id in ProviderID.allCases where !order.contains(id) {
+            order.append(id)
+        }
+        return order
+    }
+
+    /// `ids` in the order `order` gives them; an id `order` lacks keeps its `ProviderID` place
+    /// after the rest.
+    static func sorted(_ ids: [ProviderID], by order: [ProviderID]) -> [ProviderID] {
+        let rank = { (id: ProviderID) -> Int in
+            order.firstIndex(of: id) ?? (order.count + (ProviderID.allCases.firstIndex(of: id) ?? 0))
+        }
+        return ids.sorted { rank($0) < rank($1) }
+    }
+}
+
+extension EnvironmentValues {
+    /// Size of the provider names in the grouped dropdown. Set by `GroupedMenuBarView`.
+    @Entry var groupedTitleSize: GroupedTextSize = .regular
+    /// Size of the dollar amounts in the grouped dropdown's Balances rows.
+    @Entry var groupedAmountSize: GroupedTextSize = .regular
+}
+
 /// The grouped item's label: Codex's plain dashed ring, never tinted, no text. It stands for the
 /// whole app, so it carries no single provider's severity.
 enum GroupedMenuBarLabel {
