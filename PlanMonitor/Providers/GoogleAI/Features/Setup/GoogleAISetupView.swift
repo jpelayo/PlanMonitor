@@ -1,8 +1,10 @@
 import AppKit
 import SwiftUI
 
-/// "Set up Google AI": why a script, the three steps, the script itself, and the buttons that
-/// install, locate and test it. `OpenCodeConnectKeyView`'s shape.
+/// "Set up Google AI": one sentence, the result line, and two buttons — Test now and Install.
+/// No script text, steps or folders (user request, 2026-11-24): Install opens the Save dialog
+/// already in the right folder and tests right after; the result line says what's missing, if
+/// anything. The script itself stays in `GoogleAIScript.contents`; "Show folder" lives in Settings.
 struct GoogleAISetupView: View {
     @Bindable var viewModel: GoogleAIViewModel
     @State private var isWorking = false
@@ -11,50 +13,16 @@ struct GoogleAISetupView: View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Set up Google AI").font(.title2.bold())
 
-            Text("PlanMonitor reads your Antigravity limits with the **agy** command. macOS does not let it run other programs itself, but it can run a script you install in its scripts folder.")
+            Text("PlanMonitor reads your Antigravity limits through the Antigravity command-line tool. Install adds a small helper so it can.")
                 .font(.callout)
                 .fixedSize(horizontal: false, vertical: true)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text("1. Install the Antigravity CLI: brew install --cask antigravity-cli")
-                Text("2. Run agy once in Terminal and sign in")
-                Text("3. Click Install script and save it in the folder that opens")
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .textSelection(.enabled)
-
-            ScrollView {
-                Text(verbatim: GoogleAIScript.contents)
-                    .font(.system(size: 10, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(8)
-            }
-            .frame(height: 150)
-            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+            Text(viewModel.setupMessage ?? scriptStateText)
+                .font(.caption)
+                .foregroundStyle(viewModel.setupMessage != nil && viewModel.lastError != nil ? Color.red : Color.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             HStack {
-                Text(String(localized: "Helper script"))
-                Spacer()
-                Text(scriptStateText)
-                    .foregroundStyle(.secondary)
-            }
-            .font(.caption)
-
-            if let message = viewModel.setupMessage {
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(viewModel.lastError == nil ? Color.secondary : Color.red)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Text("The script only runs agy -p /usage. PlanMonitor stores no Google credentials.")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-
-            HStack {
-                Button(String(localized: "Show folder")) { GoogleAIScriptInstaller.showFolder() }
                 Spacer()
                 Button(String(localized: "Test now")) {
                     Task { isWorking = true; await viewModel.testNow(); isWorking = false }
@@ -68,7 +36,7 @@ struct GoogleAISetupView: View {
             }
         }
         .padding(20)
-        .frame(width: 460)
+        .frame(width: 420)
         .onAppear {
             viewModel.refreshScriptState()
             NSApp.activate(ignoringOtherApps: true)

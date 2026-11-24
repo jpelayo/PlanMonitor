@@ -24,7 +24,7 @@ enum GoogleAIScriptInstaller {
         panel.canCreateDirectories = false
         panel.isExtensionHidden = false
         panel.title = String(localized: "Install script")
-        panel.message = String(localized: "Save the helper script in this folder. It only runs agy -p /usage to read your Antigravity limits.")
+        panel.message = String(localized: "Click Install to add PlanMonitor's helper here.")
         panel.prompt = String(localized: "Install")
         guard panel.runModal() == .OK, let url = panel.url else { return .cancelled }
 

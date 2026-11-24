@@ -382,11 +382,7 @@
 "Set up Google AI" = "Set up Google AI";
 "Set up…" = "Set up…";
 "Shows your Antigravity limits using the agy command. A small helper script is needed." = "Shows your Antigravity limits using the agy command. A small helper script is needed.";
-"PlanMonitor reads your Antigravity limits with the **agy** command. macOS does not let it run other programs itself, but it can run a script you install in its scripts folder." = "PlanMonitor reads your Antigravity limits with the **agy** command. macOS does not let it run other programs itself, but it can run a script you install in its scripts folder.";
-"1. Install the Antigravity CLI: brew install --cask antigravity-cli" = "1. Install the Antigravity CLI: brew install --cask antigravity-cli";
-"2. Run agy once in Terminal and sign in" = "2. Run agy once in Terminal and sign in";
-"3. Click Install script and save it in the folder that opens" = "3. Click Install script and save it in the folder that opens";
-"The script only runs agy -p /usage. PlanMonitor stores no Google credentials." = "The script only runs agy -p /usage. PlanMonitor stores no Google credentials.";
+"PlanMonitor reads your Antigravity limits through the Antigravity command-line tool. Install adds a small helper so it can." = "PlanMonitor reads your Antigravity limits through the Antigravity command-line tool. Install adds a small helper so it can.";
 "Helper script" = "Helper script";
 "Installed" = "Installed";
 "Outdated" = "Outdated";
@@ -399,7 +395,7 @@
 "Test now" = "Test now";
 "Running agy…" = "Running agy…";
 "Working: %lld limits read." = "Working: %lld limits read.";
-"Save the helper script in this folder. It only runs agy -p /usage to read your Antigravity limits." = "Save the helper script in this folder. It only runs agy -p /usage to read your Antigravity limits.";
+"Click Install to add PlanMonitor's helper here." = "Click Install to add PlanMonitor's helper here.";
 "Save the script in the folder the dialog opens, with its own name." = "Save the script in the folder the dialog opens, with its own name.";
 "The scripts folder could not be found." = "The scripts folder could not be found.";
 "The helper script is not installed." = "The helper script is not installed.";

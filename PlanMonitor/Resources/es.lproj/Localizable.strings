@@ -382,11 +382,7 @@
 "Set up Google AI" = "Configurar Google AI";
 "Set up…" = "Configurar…";
 "Shows your Antigravity limits using the agy command. A small helper script is needed." = "Muestra tus límites de Antigravity con el comando agy. Hace falta un pequeño script auxiliar.";
-"PlanMonitor reads your Antigravity limits with the **agy** command. macOS does not let it run other programs itself, but it can run a script you install in its scripts folder." = "PlanMonitor lee tus límites de Antigravity con el comando **agy**. macOS no le deja ejecutar otros programas por sí mismo, pero sí un script que instales en su carpeta de scripts.";
-"1. Install the Antigravity CLI: brew install --cask antigravity-cli" = "1. Instala la CLI de Antigravity: brew install --cask antigravity-cli";
-"2. Run agy once in Terminal and sign in" = "2. Ejecuta agy una vez en Terminal e inicia sesión";
-"3. Click Install script and save it in the folder that opens" = "3. Pulsa Instalar script y guárdalo en la carpeta que se abre";
-"The script only runs agy -p /usage. PlanMonitor stores no Google credentials." = "El script solo ejecuta agy -p /usage. PlanMonitor no guarda credenciales de Google.";
+"PlanMonitor reads your Antigravity limits through the Antigravity command-line tool. Install adds a small helper so it can." = "PlanMonitor lee tus límites de Antigravity a través de la herramienta de línea de comandos de Antigravity. Instalar añade un pequeño asistente para que pueda hacerlo.";
 "Helper script" = "Script auxiliar";
 "Installed" = "Instalado";
 "Outdated" = "Desactualizado";
@@ -399,7 +395,7 @@
 "Test now" = "Probar ahora";
 "Running agy…" = "Ejecutando agy…";
 "Working: %lld limits read." = "Funciona: %lld límites leídos.";
-"Save the helper script in this folder. It only runs agy -p /usage to read your Antigravity limits." = "Guarda el script auxiliar en esta carpeta. Solo ejecuta agy -p /usage para leer tus límites de Antigravity.";
+"Click Install to add PlanMonitor's helper here." = "Pulsa Instalar para añadir aquí el asistente de PlanMonitor.";
 "Save the script in the folder the dialog opens, with its own name." = "Guarda el script en la carpeta que abre el diálogo, con su propio nombre.";
 "The scripts folder could not be found." = "No se encontró la carpeta de scripts.";
 "The helper script is not installed." = "El script auxiliar no está instalado.";
