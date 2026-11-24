@@ -77,8 +77,8 @@ struct GrokGroupedSection: View {
     private var alert: GroupedSectionHeader.Alert? {
         switch viewModel.visibleGrokSystemStatus {
         case nil, .operational?: nil
-        case .degraded?: .init(title: String(localized: "Grok degraded"), isOutage: false)
-        case .outage?: .init(title: String(localized: "Grok outage"), isOutage: true)
+        case .degraded?: .init(title: String(localized: "Grok degraded"), isOutage: false, statusPage: GrokStatusService.statusPageURL)
+        case .outage?: .init(title: String(localized: "Grok outage"), isOutage: true, statusPage: GrokStatusService.statusPageURL)
         }
     }
 }

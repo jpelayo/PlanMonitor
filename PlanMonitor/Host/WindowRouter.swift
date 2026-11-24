@@ -13,6 +13,7 @@ final class WindowRouter: NSObject, NSWindowDelegate {
         case connectOpenRouter = "connect-openrouter"
         case loginClaudeAPI = "login-claudeapi"
         case connectOpenCode = "connect-opencode"
+        case setupGoogleAI = "setup-googleai"
 
         var title: String {
             switch self {
@@ -22,6 +23,7 @@ final class WindowRouter: NSObject, NSWindowDelegate {
             case .connectOpenRouter: String(localized: "Connect OpenRouter")
             case .loginClaudeAPI: String(localized: "Sign in to Claude-API")
             case .connectOpenCode: String(localized: "Connect OpenCode")
+            case .setupGoogleAI: String(localized: "Set up Google AI")
             }
         }
     }

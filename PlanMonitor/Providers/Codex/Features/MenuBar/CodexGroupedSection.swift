@@ -111,8 +111,8 @@ struct CodexGroupedSection: View {
     private var alert: GroupedSectionHeader.Alert? {
         switch viewModel.displayedCodexSystemStatus {
         case .operational: nil
-        case .degraded: .init(title: String(localized: "Codex degraded"), isOutage: false)
-        case .outage: .init(title: String(localized: "Codex outage"), isOutage: true)
+        case .degraded: .init(title: String(localized: "Codex degraded"), isOutage: false, statusPage: CodexStatusService.statusPageURL)
+        case .outage: .init(title: String(localized: "Codex outage"), isOutage: true, statusPage: CodexStatusService.statusPageURL)
         }
     }
 }

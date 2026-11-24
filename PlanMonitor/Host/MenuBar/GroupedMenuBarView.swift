@@ -1,16 +1,38 @@
+import AppKit
 import SwiftUI
 
 /// The grouped item's dropdown: every enabled provider's compact section, the money providers'
-/// balances, and the shared footer. 320pt like every dropdown. The sections scroll past a
-/// ceiling; the balances and the footer never move.
+/// balances, and the shared footer. 320pt like every dropdown, 33%…75% of the screen tall. The
+/// sections scroll only past that ceiling; the balances and the footer never move.
 struct GroupedMenuBarView: View {
     let entries: [GroupedMenuEntry]
     @Bindable var providers: EnabledProviders
     @Bindable var preferences: GlobalPreferences
 
-    /// Six providers with two to four rows each fit under this; more scroll.
-    private let maxBodyHeight: CGFloat = 460
+    /// The whole dropdown is between a third and three quarters of the screen's height (user
+    /// rule, 2026-11-23): the sections take what the header, balances and footer leave, so every
+    /// gauge shows without scrolling unless that ceiling is reached.
+    private static let maxScreenShare: CGFloat = 0.75
+    private static let minScreenShare: CGFloat = 0.33
     @State private var bodyHeight: CGFloat = 0
+    @State private var chromeHeight: CGFloat = 0
+    /// Read once per open: the view is rebuilt every time the popover is shown.
+    @State private var screenHeight: CGFloat = GroupedMenuBarView.currentScreenHeight()
+
+    /// The screen the user just clicked on (the item's), else the main one.
+    private static func currentScreenHeight() -> CGFloat {
+        let mouse = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
+        return screen?.frame.height ?? 900
+    }
+
+    /// The sections' height: their natural height, clamped so the whole dropdown stays within
+    /// 33%…75% of the screen. Below the floor the extra space is left empty under the sections.
+    private var sectionsHeight: CGFloat {
+        let ceiling = max(screenHeight * Self.maxScreenShare - chromeHeight, 120)
+        let floor = min(max(screenHeight * Self.minScreenShare - chromeHeight, 1), ceiling)
+        return min(max(bodyHeight, floor), ceiling)
+    }
 
     /// In `ProviderID` order — the order the entries are built in — enabled ones only.
     /// Enabled ones only, in the user's order (Settings › Grouped menu) — sections and Balances
@@ -32,9 +54,11 @@ struct GroupedMenuBarView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 10)
+                .measuresGroupedChrome()
 
             if !sections.isEmpty {
                 Divider()
+                    .measuresGroupedChrome()
 
                 ScrollView(.vertical) {
                     VStack(alignment: .leading, spacing: 0) {
@@ -48,29 +72,36 @@ struct GroupedMenuBarView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
+                    .fixedSize(horizontal: false, vertical: true)
                     .background(
                         GeometryReader { proxy in
                             Color.clear.preference(key: GroupedBodyHeightKey.self, value: proxy.size.height)
                         }
                     )
                 }
-                .frame(height: min(max(bodyHeight, 1), maxBodyHeight))
+                .frame(height: sectionsHeight, alignment: .top)
                 .onPreferenceChange(GroupedBodyHeightKey.self) { bodyHeight = $0 }
             }
 
             if !balances.isEmpty {
                 Divider()
+                    .measuresGroupedChrome()
                 balancesBlock(balances)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
+                    .measuresGroupedChrome()
             }
 
             Divider()
+                .measuresGroupedChrome()
 
             footer(shown)
+                .measuresGroupedChrome()
         }
         .frame(width: 320)
         .padding(.bottom, 10)
+        // The bottom inset belongs to the chrome too.
+        .onPreferenceChange(GroupedChromeHeightKey.self) { chromeHeight = $0 + 10 }
         .environment(\.groupedTitleSize, preferences.groupedTitleSize)
         .environment(\.groupedAmountSize, preferences.groupedAmountSize)
     }
@@ -153,6 +184,25 @@ struct GroupedMenuBarView: View {
                 }
             },
             refreshEnabled: !refreshable.isEmpty
+        )
+    }
+}
+
+/// Everything but the sections — header, balances, footer, dividers — summed, so the sections
+/// get the rest of the screen share.
+private struct GroupedChromeHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value += nextValue()
+    }
+}
+
+private extension View {
+    func measuresGroupedChrome() -> some View {
+        background(
+            GeometryReader { proxy in
+                Color.clear.preference(key: GroupedChromeHeightKey.self, value: proxy.size.height)
+            }
         )
     }
 }

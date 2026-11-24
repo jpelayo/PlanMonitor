@@ -109,6 +109,15 @@ struct GroupedSectionHeader: View {
     struct Alert {
         let title: String
         let isOutage: Bool
+        /// The provider's status page — the same one its dropdown's pill opens.
+        let statusPage: URL
+
+        /// "OpenCode degraded — Open status page (status.opencode.ai)".
+        var tooltip: String {
+            let open = String(localized: "Open status page")
+            guard let host = statusPage.host() else { return "\(title) — \(open)" }
+            return "\(title) — \(open) (\(host))"
+        }
     }
 
     let title: String
@@ -121,6 +130,7 @@ struct GroupedSectionHeader: View {
     var action: (() -> Void)? = nil
     /// Settings › Grouped menu › Provider name size, set by `GroupedMenuBarView`.
     @Environment(\.groupedTitleSize) private var titleSize
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         HStack(spacing: 6) {
@@ -147,11 +157,18 @@ struct GroupedSectionHeader: View {
                     .accessibilityLabel(text)
             }
             if let alert {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(alert.isOutage ? Color.red : Color.orange)
-                    .help(alert.title)
-                    .accessibilityLabel(alert.title)
+                // A link to the status page, as the dropdown's pill is: `.plain` keeps the mark
+                // exactly as drawn, and `openURL` hands off to the default browser.
+                Button {
+                    openURL(alert.statusPage)
+                } label: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(alert.isOutage ? Color.red : Color.orange)
+                }
+                .buttonStyle(.plain)
+                .help(alert.tooltip)
+                .accessibilityLabel(alert.tooltip)
             }
             if let actionTitle, let action {
                 Button(actionTitle, action: action)

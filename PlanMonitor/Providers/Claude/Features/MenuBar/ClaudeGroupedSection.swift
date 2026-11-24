@@ -125,8 +125,8 @@ struct ClaudeGroupedSection: View {
     private var alert: GroupedSectionHeader.Alert? {
         switch viewModel.displayedClaudeSystemStatus {
         case .operational: nil
-        case .degraded: .init(title: String(localized: "Claude degraded"), isOutage: false)
-        case .outage: .init(title: String(localized: "Claude outage"), isOutage: true)
+        case .degraded: .init(title: String(localized: "Claude degraded"), isOutage: false, statusPage: ClaudeStatusService.statusPageURL)
+        case .outage: .init(title: String(localized: "Claude outage"), isOutage: true, statusPage: ClaudeStatusService.statusPageURL)
         }
     }
 }

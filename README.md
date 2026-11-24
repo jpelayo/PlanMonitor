@@ -1,6 +1,6 @@
 # PlanMonitor
 
-A native macOS menu bar app that tracks your AI usage limits and spending in real time — for **Claude**, **Codex (ChatGPT)**, **Grok**, **OpenRouter**, **Claude-API** and **OpenCode** — from one lightweight process.
+A native macOS menu bar app that tracks your AI usage limits and spending in real time — for **Claude**, **Codex (ChatGPT)**, **Grok**, **OpenRouter**, **Claude-API**, **OpenCode** and **Google AI** (Antigravity) — from one lightweight process.
 
 ![macOS](https://img.shields.io/badge/macOS-15.0+-blue)
 ![Swift](https://img.shields.io/badge/Swift-6.2+-orange)
@@ -8,7 +8,7 @@ A native macOS menu bar app that tracks your AI usage limits and spending in rea
 
 ## What it does
 
-Each provider you enable gets its own menu bar item with its own dropdown, sign-in, polling and cache. Enable one, two, or all six — at least one is always on so Settings stays reachable.
+Each provider you enable gets its own menu bar item with its own dropdown, sign-in, polling and cache. Enable one, two, or all seven — at least one is always on so Settings stays reachable.
 
 | Provider | Signs in with | Shows |
 |---|---|---|
@@ -18,8 +18,9 @@ Each provider you enable gets its own menu bar item with its own dropdown, sign-
 | **OpenRouter** | a pasted **management** key (read-only, cannot spend) | Remaining credit, spend over the last 15 min / hour / day / month, projected month, per-key and guardrail budgets, recently used models |
 | **Claude-API** (Claude Platform) | platform.claude.com (embedded browser, "Continue with email") | Anthropic API console money: promotional API credit and its expiry, this month's spend against your own spend limit (else Anthropic's), prepaid credit, amount to be invoiced, auto-payment on/off, Claude service status |
 | **OpenCode** | a pasted Console API key with **Usage › Read** and **Budgets › Read** (cannot call models) | Go plan 5-hour, weekly and monthly limits with their resets, this month's Console spend against your monthly budget, OpenCode service status. The credit balance is not shown yet: OpenCode does not give it to API keys |
+| **Google AI** | nothing in PlanMonitor: it runs the Antigravity CLI's `agy -p /usage` through a small helper script you install from its setup window (macOS lets a sandboxed app run only scripts you place in its scripts folder) | Antigravity limits: Gemini models, Claude and GPT models and Gemini 4 Argon, each with its 5-hour and weekly window and resets |
 
-Shared across all six:
+Shared across all seven:
 
 - **Session time** — an optional accumulator that infers how long you have been actively using each provider today, from movement in its usage counters. Per-provider on/off, detection interval and daily reset hour.
 - **Extra expenditure line** — Claude, Codex and Grok headers show whether pay-as-you-go spend is enabled and how much of the cap is used.
@@ -89,7 +90,7 @@ To see the app with sample data and no accounts, launch it with the `-demo` argu
 
 ## Disclaimer
 
-PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Grok, OpenCode, and OpenRouter. It is not affiliated with the vendors nor endorsed by them.
+PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Google AI, Grok, OpenCode, and OpenRouter. It is not affiliated with the vendors nor endorsed by them.
 
 ## Contributing
 

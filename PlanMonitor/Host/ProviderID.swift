@@ -10,6 +10,8 @@ nonisolated enum ProviderID: String, CaseIterable, Codable, Identifiable, Sendab
     /// lands rightmost — and existing users' items keep their order.
     case claudeapi
     case opencode
+    /// Google AI: the Antigravity limits, read by running `agy` through a user-installed script.
+    case googleai
 
     var id: String { rawValue }
 
@@ -21,6 +23,7 @@ nonisolated enum ProviderID: String, CaseIterable, Codable, Identifiable, Sendab
         case .openrouter: "OpenRouter"
         case .claudeapi: "Claude-API"
         case .opencode: "OpenCode"
+        case .googleai: "Google AI"
         }
     }
 }

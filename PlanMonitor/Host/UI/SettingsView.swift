@@ -7,6 +7,7 @@ struct SettingsView: View {
     @Bindable var openRouterViewModel: OpenRouterBudgetViewModel
     @Bindable var claudeAPIViewModel: ClaudePlatformViewModel
     @Bindable var openCodeViewModel: OpenCodeViewModel
+    @Bindable var googleAIViewModel: GoogleAIViewModel
     @Bindable var providers: EnabledProviders
     @Bindable var preferences: GlobalPreferences
     /// Forgets the saved menu bar positions and rebuilds the items at the default spot.
@@ -145,6 +146,7 @@ struct SettingsView: View {
                 case .provider(.openrouter): openRouterControls
                 case .provider(.claudeapi): claudePlatformControls
                 case .provider(.opencode): openCodeControls
+                case .provider(.googleai): googleAIControls
                 case .grouped: groupedMenuControls
                 }
             } header: {
@@ -164,7 +166,7 @@ struct SettingsView: View {
                     }
                 }
                 LabeledContent(String(localized: "About")) {
-                    Text(String(localized: "PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Grok, OpenCode, and OpenRouter. It is not affiliated with the vendors nor endorsed by them."))
+                    Text(String(localized: "PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Google AI, Grok, OpenCode, and OpenRouter. It is not affiliated with the vendors nor endorsed by them."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.trailing)
@@ -453,6 +455,32 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    /// Google AI has no account to show: agy keeps its own sign-in. What it needs is the helper
+    /// script, so that is the row — its state and the ways to install, find and test it. Its
+    /// percentage follows the global "Show percentage" above.
+    @ViewBuilder
+    private var googleAIControls: some View {
+        SessionTrackingControls(preferences: googleAIViewModel.sessionPreferences)
+        MenuBarTextControls(preferences: googleAIViewModel.menuBarText)
+        LabeledContent(String(localized: "Helper script")) {
+            switch googleAIViewModel.scriptState {
+            case .installed: Text(String(localized: "Installed"))
+            case .outdated: Text(String(localized: "Outdated")).foregroundStyle(.orange)
+            case .notInstalled: Text(String(localized: "Not installed")).foregroundStyle(.secondary)
+            }
+        }
+        HStack {
+            Button(googleAIViewModel.scriptState == .notInstalled
+                   ? String(localized: "Install script…")
+                   : String(localized: "Reinstall script…")) {
+                Task { await googleAIViewModel.installScript() }
+            }
+            Button(String(localized: "Show folder")) { GoogleAIScriptInstaller.showFolder() }
+            Button(String(localized: "Set up…")) { WindowRouter.shared.open(.setupGoogleAI) }
+        }
+        .onAppear { googleAIViewModel.refreshScriptState() }
     }
 
     /// The money providers' currency choice — one control, so all read the same.

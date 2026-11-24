@@ -45,7 +45,7 @@ nonisolated enum GroupedTextSize: String, CaseIterable, Sendable {
     }
 }
 
-/// The user's order for the grouped dropdown: all six providers, sections and Balances rows alike.
+/// The user's order for the grouped dropdown: every provider, sections and Balances rows alike.
 nonisolated enum GroupedMenuOrder {
     /// Stored raw ids → every provider once, in the user's order. Known ids keep their stored
     /// place; a provider missing from storage (a new one) is appended in `ProviderID` order, so it

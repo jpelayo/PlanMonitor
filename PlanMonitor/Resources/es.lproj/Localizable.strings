@@ -164,7 +164,7 @@
 "Track your Codex usage from the menu bar" = "Controla tu uso de ChatGPT / Codex desde la barra de menús";
 "Connected as" = "Conectado como";
 "Remove management key" = "Eliminar clave de gestión";
-"PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Grok, OpenCode, and OpenRouter. It is not affiliated with the vendors nor endorsed by them." = "PlanMonitor es una herramienta independiente para usar con Claude, Claude Platform, Codex, Grok, OpenCode y OpenRouter. No está afiliada a los proveedores ni cuenta con su respaldo.";
+"PlanMonitor is an independent tool for use with Claude, Claude Platform, Codex, Google AI, Grok, OpenCode, and OpenRouter. It is not affiliated with the vendors nor endorsed by them." = "PlanMonitor es una herramienta independiente para usar con Claude, Claude Platform, Codex, Google AI, Grok, OpenCode y OpenRouter. No está afiliada a los proveedores ni cuenta con su respaldo.";
 
 /* Aplicación unificada — anfitrión */
 "PlanMonitor for Claude" = "PlanMonitor para Claude";
@@ -372,3 +372,39 @@
 "Huge" = "Enorme";
 "Group icons" = "Agrupar iconos";
 "Balances" = "Saldos";
+
+/* Google AI */
+"PlanMonitor for Google AI" = "PlanMonitor para Google AI";
+"Antigravity limits, read with agy" = "Límites de Antigravity, leídos con agy";
+"5-hour" = "5 horas";
+"Weekly" = "Semanal";
+"Not set up" = "Sin configurar";
+"Set up Google AI" = "Configurar Google AI";
+"Set up…" = "Configurar…";
+"Shows your Antigravity limits using the agy command. A small helper script is needed." = "Muestra tus límites de Antigravity con el comando agy. Hace falta un pequeño script auxiliar.";
+"PlanMonitor reads your Antigravity limits with the **agy** command. macOS does not let it run other programs itself, but it can run a script you install in its scripts folder." = "PlanMonitor lee tus límites de Antigravity con el comando **agy**. macOS no le deja ejecutar otros programas por sí mismo, pero sí un script que instales en su carpeta de scripts.";
+"1. Install the Antigravity CLI: brew install --cask antigravity-cli" = "1. Instala la CLI de Antigravity: brew install --cask antigravity-cli";
+"2. Run agy once in Terminal and sign in" = "2. Ejecuta agy una vez en Terminal e inicia sesión";
+"3. Click Install script and save it in the folder that opens" = "3. Pulsa Instalar script y guárdalo en la carpeta que se abre";
+"The script only runs agy -p /usage. PlanMonitor stores no Google credentials." = "El script solo ejecuta agy -p /usage. PlanMonitor no guarda credenciales de Google.";
+"Helper script" = "Script auxiliar";
+"Installed" = "Instalado";
+"Outdated" = "Desactualizado";
+"Not installed" = "No instalado";
+"Install" = "Instalar";
+"Install script" = "Instalar script";
+"Install script…" = "Instalar script…";
+"Reinstall script…" = "Reinstalar script…";
+"Show folder" = "Mostrar carpeta";
+"Test now" = "Probar ahora";
+"Running agy…" = "Ejecutando agy…";
+"Working: %lld limits read." = "Funciona: %lld límites leídos.";
+"Save the helper script in this folder. It only runs agy -p /usage to read your Antigravity limits." = "Guarda el script auxiliar en esta carpeta. Solo ejecuta agy -p /usage para leer tus límites de Antigravity.";
+"Save the script in the folder the dialog opens, with its own name." = "Guarda el script en la carpeta que abre el diálogo, con su propio nombre.";
+"The scripts folder could not be found." = "No se encontró la carpeta de scripts.";
+"The helper script is not installed." = "El script auxiliar no está instalado.";
+"The agy command was not found. Install the Antigravity CLI." = "No se encontró el comando agy. Instala la CLI de Antigravity.";
+"agy could not read your usage. Run agy in Terminal and sign in." = "agy no pudo leer tu uso. Ejecuta agy en Terminal e inicia sesión.";
+"agy's usage report has changed. Update PlanMonitor." = "El informe de uso de agy ha cambiado. Actualiza PlanMonitor.";
+"agy did not answer in time." = "agy no respondió a tiempo.";
+"macOS could not run the helper script." = "macOS no pudo ejecutar el script auxiliar.";

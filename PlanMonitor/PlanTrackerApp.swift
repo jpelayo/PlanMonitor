@@ -9,7 +9,7 @@ import AppKit
 import os
 import SwiftUI
 
-/// The SwiftUI app owns only the Settings scene. The six menu-bar items are AppKit
+/// The SwiftUI app owns only the Settings scene. The seven menu-bar items are AppKit
 /// `NSStatusItem`s (see `StatusItemController`) so their digits are real, adaptive text; the
 /// sign-in and connect windows are `NSWindow`s hosted through `WindowRouter`.
 @main
@@ -21,6 +21,7 @@ struct PlanTrackerApp: App {
     @State private var openRouterViewModel: OpenRouterBudgetViewModel
     @State private var claudeAPIViewModel: ClaudePlatformViewModel
     @State private var openCodeViewModel: OpenCodeViewModel
+    @State private var googleAIViewModel: GoogleAIViewModel
     @State private var enabledProviders: EnabledProviders
     @State private var preferences: GlobalPreferences
     @State private var statusItems: StatusItemController
@@ -56,6 +57,11 @@ struct PlanTrackerApp: App {
         let openRouter = OpenRouterBudgetViewModel(secureStore: secureStore, defaults: defaults)
         let claudeAPI = ClaudePlatformViewModel(secureStore: secureStore, defaults: defaults)
         let openCode = OpenCodeViewModel(secureStore: secureStore, defaults: defaults)
+        // Isolated (test host, UI tests): a runner that never runs anything on this Mac.
+        let googleAIRunner: any GoogleAIScriptRunning = launch.isIsolated
+            ? NullGoogleAIScriptRunner()
+            : UserUnixTaskGoogleAIRunner()
+        let googleAI = GoogleAIViewModel(defaults: defaults, runner: googleAIRunner)
         let enabled = EnabledProviders(defaults: groupDefaults)
         let coordinator = ProviderRuntimeCoordinator(
             claude: claude,
@@ -63,13 +69,14 @@ struct PlanTrackerApp: App {
             grok: grok,
             openRouter: openRouter,
             claudeAPI: claudeAPI,
-            openCode: openCode
+            openCode: openCode,
+            googleAI: googleAI
         )
         let reviewer = ReviewerMode(
             providers: enabled,
             runtimes: [
                 .claude: claude, .codex: codex, .grok: grok, .openrouter: openRouter, .claudeapi: claudeAPI,
-                .opencode: openCode
+                .opencode: openCode, .googleai: googleAI
             ]
         )
 
@@ -82,6 +89,7 @@ struct PlanTrackerApp: App {
                 openRouter.pollingIntervalMinutes = minutes
                 claudeAPI.pollingIntervalMinutes = minutes
                 openCode.pollingIntervalMinutes = minutes
+                googleAI.pollingIntervalMinutes = minutes
             case .percentageMode(let showRemaining):
                 // The money providers sit this out: their indicators read each in its own sense
                 // (credit as remaining, spend as used), so one global switch would misreport.
@@ -102,6 +110,7 @@ struct PlanTrackerApp: App {
         _openRouterViewModel = State(initialValue: openRouter)
         _claudeAPIViewModel = State(initialValue: claudeAPI)
         _openCodeViewModel = State(initialValue: openCode)
+        _googleAIViewModel = State(initialValue: googleAI)
         _enabledProviders = State(initialValue: enabled)
         _preferences = State(initialValue: globalPreferences)
 
@@ -130,6 +139,9 @@ struct PlanTrackerApp: App {
         }
         router.register(.connectOpenCode) {
             AnyView(OpenCodeConnectKeyView(viewModel: openCode))
+        }
+        router.register(.setupGoogleAI) {
+            AnyView(GoogleAISetupView(viewModel: googleAI))
         }
 
         // The grouped dropdown's view of each provider, from the same view models: its compact
@@ -209,6 +221,16 @@ struct PlanTrackerApp: App {
                     return !openCode.isDemoMode
                 },
                 isDemo: { openCode.isDemoMode },
+                balances: { [] }
+            ),
+            GroupedMenuEntry(
+                id: .googleai,
+                section: { AnyView(GoogleAIGroupedSection(viewModel: googleAI)) },
+                refresh: { await googleAI.refreshUsage() },
+                isRefreshing: { googleAI.isLoading },
+                nextRefreshAt: { googleAI.nextRefreshAt },
+                canRefresh: { !googleAI.needsSetup && !googleAI.isDemoMode },
+                isDemo: { googleAI.isDemoMode },
                 balances: { [] }
             )
         ]
@@ -321,6 +343,22 @@ struct PlanTrackerApp: App {
                     content: {
                         AnyView(OpenCodeMenuBarView(viewModel: openCode, providers: enabled, preferences: globalPreferences))
                     }
+                ),
+                .init(
+                    id: .googleai,
+                    label: {
+                        // Its percentage follows the global remaining/used switch, read here as
+                        // OpenCode's Go figures are.
+                        GoogleAIMenuBarLabel.make(
+                            usage: googleAI.usage,
+                            showsUsage: googleAI.showsUsage,
+                            showRemainingPercent: globalPreferences.showRemainingPercent,
+                            font: googleAI.menuBarText.font
+                        )
+                    },
+                    content: {
+                        AnyView(GoogleAIMenuBarView(viewModel: googleAI, providers: enabled, preferences: globalPreferences))
+                    }
                 )
             ],
             enabledProviders: enabled,
@@ -374,6 +412,7 @@ struct PlanTrackerApp: App {
                 openRouterViewModel: openRouterViewModel,
                 claudeAPIViewModel: claudeAPIViewModel,
                 openCodeViewModel: openCodeViewModel,
+                googleAIViewModel: googleAIViewModel,
                 providers: enabledProviders,
                 preferences: preferences,
                 resetMenuBarPositions: { statusItems.resetPositions() }

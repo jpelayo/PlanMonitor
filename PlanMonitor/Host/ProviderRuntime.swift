@@ -52,3 +52,10 @@ extension OpenCodeViewModel: ProviderRuntime {
     func disable() async { await suspend() }
     func refresh() async { await refreshUsage() }
 }
+
+extension GoogleAIViewModel: ProviderRuntime {
+    var providerID: ProviderID { .googleai }
+    func enable() async { await resume() }
+    func disable() async { await suspend() }
+    func refresh() async { await refreshUsage() }
+}

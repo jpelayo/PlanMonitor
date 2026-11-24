@@ -112,8 +112,8 @@ struct OpenCodeGroupedSection: View {
     private var alert: GroupedSectionHeader.Alert? {
         switch viewModel.displayedSystemStatus {
         case .operational: nil
-        case .degraded: .init(title: String(localized: "OpenCode degraded"), isOutage: false)
-        case .outage: .init(title: String(localized: "OpenCode outage"), isOutage: true)
+        case .degraded: .init(title: String(localized: "OpenCode degraded"), isOutage: false, statusPage: OpenCodeStatusService.statusPageURL)
+        case .outage: .init(title: String(localized: "OpenCode outage"), isOutage: true, statusPage: OpenCodeStatusService.statusPageURL)
         }
     }
 }

@@ -22,13 +22,15 @@ struct GroupedMenuSettingsTests {
     }
 
     @Test func aStoredOrderIsKept() {
-        let custom: [ProviderID] = [.codex, .opencode, .claude, .claudeapi, .grok, .openrouter]
+        let custom: [ProviderID] = [.codex, .opencode, .claude, .googleai, .claudeapi, .grok, .openrouter]
         #expect(GroupedMenuOrder.repaired(custom.map(\.rawValue)) == custom)
     }
 
     @Test func aProviderMissingFromStorageLandsLast() {
         let stored = ["codex", "claude", "grok", "openrouter", "claudeapi"]
-        #expect(GroupedMenuOrder.repaired(stored) == [.codex, .claude, .grok, .openrouter, .claudeapi, .opencode])
+        // Every provider missing from storage lands last, in declaration order — Google AI, added
+        // after this order was saved, included.
+        #expect(GroupedMenuOrder.repaired(stored) == [.codex, .claude, .grok, .openrouter, .claudeapi, .opencode, .googleai])
     }
 
     @Test func unknownAndRepeatedIdsAreSkipped() {
@@ -64,12 +66,12 @@ struct GroupedMenuSettingsTests {
             let first = GlobalPreferences(defaults: defaults, readLoginItem: false)
             first.groupedTitleSize = .huge
             first.groupedAmountSize = .big
-            first.groupedOrder = [.codex, .claude, .grok, .openrouter, .claudeapi, .opencode]
+            first.groupedOrder = [.codex, .claude, .grok, .openrouter, .claudeapi, .opencode, .googleai]
 
             let second = GlobalPreferences(defaults: defaults, readLoginItem: false)
             #expect(second.groupedTitleSize == .huge)
             #expect(second.groupedAmountSize == .big)
-            #expect(second.groupedOrder == [.codex, .claude, .grok, .openrouter, .claudeapi, .opencode])
+            #expect(second.groupedOrder == [.codex, .claude, .grok, .openrouter, .claudeapi, .opencode, .googleai])
         }
     }
 }
