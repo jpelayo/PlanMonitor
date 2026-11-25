@@ -2,7 +2,7 @@ import SwiftUI
 
 /// The Google AI dropdown. House geometry (320pt, 16pt insets) and header order: title, source line
 /// with the demo marker, the session time line. Then one block per agy group, in agy's order, its
-/// name verbatim (Google's product names) over one card per window. No status pill: Google
+/// name verbatim (Google's product names) over one card per window, the 5-hour one first. No status pill: Google
 /// publishes no status for these limits. No log-out row: there is no sign-in to end.
 struct GoogleAIMenuBarView: View {
     @Bindable var viewModel: GoogleAIViewModel
@@ -45,7 +45,7 @@ struct GoogleAIMenuBarView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text(verbatim: group.name)
                             .font(.subheadline.weight(.semibold))
-                        ForEach(group.buckets) { bucket in
+                        ForEach(group.shownBuckets) { bucket in
                             GoogleAIWindowCard(bucket: bucket)
                         }
                     }
