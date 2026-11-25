@@ -9,8 +9,13 @@ import Foundation
 actor GoogleAIPollingService {
     /// agy takes ~3 s; a cold start can take longer (CodexBar allows 90 s).
     static let runTimeout: TimeInterval = 90
+    /// A manual Refresh runs the script twice, this far apart (user request, 2026-11-25). Script
+    /// v2 answers with the report its previous run saved and refreshes it in the background (~3 s
+    /// for agy), so the second run is the one that brings the figures of the moment.
+    static let collectDelay: TimeInterval = 6
 
     private let runner: any GoogleAIScriptRunning
+    private let collectDelay: TimeInterval
 
     private var pollingTask: Task<Void, Never>?
     private var interval: TimeInterval = 300
@@ -24,8 +29,9 @@ actor GoogleAIPollingService {
         didSet { onSchedule?(nextFireAt) }
     }
 
-    init(runner: any GoogleAIScriptRunning) {
+    init(runner: any GoogleAIScriptRunning, collectDelay: TimeInterval = GoogleAIPollingService.collectDelay) {
         self.runner = runner
+        self.collectDelay = collectDelay
     }
 
     func setCallbacks(
@@ -68,16 +74,32 @@ actor GoogleAIPollingService {
         nextFireAt = nil
     }
 
-    /// The manual Refresh: run now, then owe the automatic poll a full delay.
+    /// The manual Refresh: run now; when the script did run, run it again `collectDelay` later to
+    /// pick up what its background agy just read; then owe the automatic poll a full delay. A setup
+    /// state or a timeout gets no second run — nothing new is coming.
     func refreshNow() async {
-        await poll()
+        if let first = await poll(), Self.wantsCollect(after: first) {
+            if collectDelay > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(collectDelay * 1_000_000_000))
+            }
+            await poll()
+        }
         restartCycle()
+    }
+
+    static func wantsCollect(after result: Result<GoogleAIUsage, GoogleAIRunError>) -> Bool {
+        switch result {
+        case .success: true
+        case .failure(let error): !error.needsSetup && error != .timedOut
+        }
     }
 
     // MARK: - Cycle
 
-    private func poll() async {
-        guard !inFlight else { return }
+    /// What the run gave, or `nil` when another run was already in flight.
+    @discardableResult
+    private func poll() async -> Result<GoogleAIUsage, GoogleAIRunError>? {
+        guard !inFlight else { return nil }
         inFlight = true
         defer { inFlight = false }
 
@@ -103,6 +125,7 @@ actor GoogleAIPollingService {
             }
             onError?(error)
         }
+        return result
     }
 
     // MARK: - Interruptible sleep
