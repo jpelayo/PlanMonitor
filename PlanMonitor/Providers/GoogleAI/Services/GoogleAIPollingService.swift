@@ -9,10 +9,10 @@ import Foundation
 actor GoogleAIPollingService {
     /// agy takes ~3 s; a cold start can take longer (CodexBar allows 90 s).
     static let runTimeout: TimeInterval = 90
-    /// A manual Refresh runs the script twice, this far apart (user request, 2026-11-25). Script
+    /// A manual Refresh runs the script twice, this far apart (user request, 2026-11-25; 6 s shortened to 4 s the same day — agy measured 2.5–3 s). Script
     /// v2 answers with the report its previous run saved and refreshes it in the background (~3 s
     /// for agy), so the second run is the one that brings the figures of the moment.
-    static let collectDelay: TimeInterval = 6
+    static let collectDelay: TimeInterval = 4
 
     private let runner: any GoogleAIScriptRunning
     private let collectDelay: TimeInterval
