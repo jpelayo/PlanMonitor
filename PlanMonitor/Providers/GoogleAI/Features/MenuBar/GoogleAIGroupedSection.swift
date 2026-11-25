@@ -36,7 +36,7 @@ struct GoogleAIGroupedSection: View {
                 GroupedSectionNote(text: String(localized: "No usage data yet"))
             }
         } else {
-            ForEach(viewModel.usage.buckets) { bucket in
+            ForEach(viewModel.usage.shownBuckets) { bucket in
                 CompactGaugeRow(
                     title: "\(bucket.group) · \(windowName(bucket))",
                     fraction: bucket.used,
