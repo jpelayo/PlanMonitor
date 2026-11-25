@@ -63,6 +63,22 @@ nonisolated struct GoogleAIGroup: Codable, Equatable, Sendable, Identifiable {
     let name: String
     let buckets: [GoogleAIBucket]
     var id: String { name }
+
+    /// The order the gauges are drawn in (user request 2026-11-25): the 5-hour window above the
+    /// weekly one, as every other provider shows them, then any kind agy adds, in agy's order.
+    /// agy itself lists weekly first; `buckets` keeps its order.
+    var shownBuckets: [GoogleAIBucket] {
+        func rank(_ kind: GoogleAIBucket.Kind) -> Int {
+            switch kind {
+            case .fiveHour: 0
+            case .weekly: 1
+            case .other: 2
+            }
+        }
+        return buckets.enumerated()
+            .sorted { (rank($0.element.kind), $0.offset) < (rank($1.element.kind), $1.offset) }
+            .map(\.element)
+    }
 }
 
 /// The whole report: agy's groups in agy's order.
@@ -74,6 +90,9 @@ nonisolated struct GoogleAIUsage: Codable, Equatable, Sendable {
     var isEmpty: Bool { buckets.isEmpty }
 
     var buckets: [GoogleAIBucket] { groups.flatMap(\.buckets) }
+
+    /// Every bucket in drawing order: groups in agy's order, each group's 5-hour window first.
+    var shownBuckets: [GoogleAIBucket] { groups.flatMap(\.shownBuckets) }
 
     /// The bucket the menu bar shows (user decision 2026-11-23): the Gemini models' 5-hour
     /// window — by agy's id, else the first 5-hour window of a group whose name starts "Gemini".
