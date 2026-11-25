@@ -65,9 +65,13 @@ final class GoogleAIViewModel {
     private var isPolling = false
     private var callbacksInstalled = false
 
-    init(defaults: UserDefaults = .standard, runner: any GoogleAIScriptRunning) {
+    init(
+        defaults: UserDefaults = .standard,
+        runner: any GoogleAIScriptRunning,
+        collectDelay: TimeInterval = GoogleAIPollingService.collectDelay
+    ) {
         self.runner = runner
-        self.pollingService = GoogleAIPollingService(runner: runner)
+        self.pollingService = GoogleAIPollingService(runner: runner, collectDelay: collectDelay)
         self.snapshotStore = GoogleAISnapshotStore(defaults: defaults)
         self.sessionPreferences = SessionTrackingPreferences(namespace: "googleai", defaults: defaults)
         self.sessionTracker = SessionTracker(namespace: "googleai", defaults: defaults)
