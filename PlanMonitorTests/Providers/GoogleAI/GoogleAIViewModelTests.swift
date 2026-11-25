@@ -10,7 +10,7 @@ struct GoogleAIViewModelTests {
     @Test func noScriptMeansSetupAndNothingRuns() async {
         await withDefaultsAsync { defaults in
             let runner = FakeGoogleAIRunner(state: .notInstalled)
-            let viewModel = GoogleAIViewModel(defaults: defaults, runner: runner)
+            let viewModel = GoogleAIViewModel(defaults: defaults, runner: runner, collectDelay: 0)
             await viewModel.resume()
             #expect(await waitUntil { viewModel.lastError == .scriptMissing })
             #expect(viewModel.needsSetup)
@@ -47,7 +47,7 @@ struct GoogleAIViewModelTests {
     @Test func aTransientFailureKeepsTheFiguresWithALine() async {
         await withDefaultsAsync { defaults in
             let runner = FakeGoogleAIRunner()
-            let viewModel = GoogleAIViewModel(defaults: defaults, runner: runner)
+            let viewModel = GoogleAIViewModel(defaults: defaults, runner: runner, collectDelay: 0)
             await viewModel.resume()
             #expect(await waitUntil { !viewModel.usage.isEmpty })
 
@@ -64,7 +64,7 @@ struct GoogleAIViewModelTests {
     @Test func aChangedReportKeepsTheLastFigures() async {
         await withDefaultsAsync { defaults in
             let runner = FakeGoogleAIRunner()
-            let viewModel = GoogleAIViewModel(defaults: defaults, runner: runner)
+            let viewModel = GoogleAIViewModel(defaults: defaults, runner: runner, collectDelay: 0)
             await viewModel.resume()
             #expect(await waitUntil { !viewModel.usage.isEmpty })
 
@@ -74,6 +74,26 @@ struct GoogleAIViewModelTests {
             #expect(viewModel.usage.buckets.count == 5)
             await viewModel.suspend()
         }
+    }
+
+    /// Script v2 answers from its previous run, so a manual Refresh runs it twice.
+    @Test func aManualRefreshRunsTheScriptTwice() async {
+        await withDefaultsAsync { defaults in
+            let runner = FakeGoogleAIRunner()
+            let viewModel = GoogleAIViewModel(defaults: defaults, runner: runner, collectDelay: 0)
+            await viewModel.resume()
+            #expect(await waitUntil { runner.runs == 1 })
+            await viewModel.refreshUsage()
+            #expect(runner.runs == 3)
+            await viewModel.suspend()
+        }
+    }
+
+    @Test func noSecondRunWhenSetupIsMissingOrAgyTimedOut() {
+        #expect(GoogleAIPollingService.wantsCollect(after: .failure(.agyFailed(exit: 1))))
+        #expect(!GoogleAIPollingService.wantsCollect(after: .failure(.agyNotFound)))
+        #expect(!GoogleAIPollingService.wantsCollect(after: .failure(.scriptMissing)))
+        #expect(!GoogleAIPollingService.wantsCollect(after: .failure(.timedOut)))
     }
 
     @Test func aRelaunchShowsThePersistedFiguresAtOnce() async {
@@ -90,7 +110,7 @@ struct GoogleAIViewModelTests {
     @Test func demoShowsFiguresAndPersistsNothing() async {
         await withDefaultsAsync { defaults in
             let runner = FakeGoogleAIRunner(state: .notInstalled)
-            let viewModel = GoogleAIViewModel(defaults: defaults, runner: runner)
+            let viewModel = GoogleAIViewModel(defaults: defaults, runner: runner, collectDelay: 0)
             viewModel.enterDemo()
             #expect(viewModel.showsUsage)
             #expect(!viewModel.needsSetup)
