@@ -13,6 +13,18 @@ struct GoogleAIUsageReportTests {
         #expect(usage.buckets.map(\.kind) == [.weekly, .fiveHour, .weekly, .fiveHour, .weekly])
     }
 
+    /// agy lists weekly first; the gauges draw each group's 5-hour window first, like every provider.
+    @Test func eachGroupShowsItsFiveHourWindowFirst() throws {
+        let usage = try GoogleAIUsageReport.parse(GoogleAIFixtures.report)
+        #expect(usage.shownBuckets.map(\.id) == ["gemini-5h", "gemini-weekly", "3p-5h", "3p-weekly", "gemini-argon-wtu-weekly"])
+        let mixed = GoogleAIGroup(name: "G", buckets: [
+            GoogleAIBucket(id: "x", group: "G", name: "x", kind: .other("daily"), remaining: 1, resetsAt: nil),
+            GoogleAIBucket(id: "w", group: "G", name: "w", kind: .weekly, remaining: 1, resetsAt: nil),
+            GoogleAIBucket(id: "h", group: "G", name: "h", kind: .fiveHour, remaining: 1, resetsAt: nil),
+        ])
+        #expect(mixed.shownBuckets.map(\.id) == ["h", "w", "x"])
+    }
+
     @Test func usedIsOneMinusRemaining() throws {
         let usage = try GoogleAIUsageReport.parse(GoogleAIFixtures.report)
         let fiveHour = try #require(usage.geminiFiveHour)
